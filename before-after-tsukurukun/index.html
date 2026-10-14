@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#3e69c4">
+<meta name="description" content="BEFORE・AFTER写真を比較して、A4縦の写真付き作業報告書をPDFで作成。登録不要・無料・端末内処理。">
+<title>ビフォアフつくるくん | 写真比較・PDF報告書</title>
+<style>:root{font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Hiragino Sans","Yu Gothic",sans-serif;color:#17243a;background:#f5f7fb;font-size:15px;font-synthesis:none}*{box-sizing:border-box}body{margin:0}button,input,textarea{font:inherit}button{cursor:pointer;touch-action:manipulation}button:disabled{opacity:.45;cursor:not-allowed}input,textarea,button{border-radius:11px}input,textarea{width:100%;background:#fff;color:#17243a;border:1px solid #cbd5e3;min-height:44px;padding:11px 12px;outline-color:#527ad3}textarea{resize:vertical;min-height:79px;line-height:1.55}input[type=range]{min-height:30px;padding:0;accent-color:#3e69c4;cursor:pointer}input[type=checkbox]{width:18px;height:18px;accent-color:#3e69c4;min-height:0;margin:0}.app{max-width:1060px;margin:auto;padding:18px 16px 125px}.topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}.brand{display:flex;align-items:center;gap:12px;min-width:0}.brandmark{background:#3e69c4;color:white;border-radius:14px;width:44px;height:44px;display:grid;place-items:center;font-size:20px;font-weight:900;flex-shrink:0}.brand h1{font-size:21px;margin:0;letter-spacing:-.03em}.brand p{font-size:12px;color:#637187;margin:3px 0 0}.status{color:#60728f;font-size:12px;white-space:nowrap;display:flex;gap:6px;align-items:center}.dot{background:#2f986f;height:7px;width:7px;border-radius:100%}.intro{background:#eaf0fc;border:1px solid #d7e2fa;border-radius:16px;padding:15px 17px;margin-bottom:16px;color:#2e4b7c}.intro strong{display:block;font-size:15px;margin-bottom:4px}.intro p{margin:0;font-size:12px;line-height:1.65}.card{background:white;border:1px solid #e2e7f0;box-shadow:0 3px 16px #1b375008;border-radius:18px;padding:18px;margin-bottom:16px}.card-head{display:flex;align-items:start;justify-content:space-between;gap:15px;margin-bottom:15px}.card-head h2{margin:0;font-size:17px}.card-head p{font-size:12px;color:#667488;margin:5px 0 0}.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.form-grid.three{grid-template-columns:1.5fr 1fr 1fr}.field{display:block;min-width:0}.field span{display:block;font-size:12px;font-weight:650;color:#57667b;margin-bottom:6px}.field.full{grid-column:1/-1}.pill{font-weight:700;font-size:11px;padding:5px 9px;border-radius:999px;background:#edf2fd;color:#4065ad;white-space:nowrap}.btn{border:1px solid #d4deec;background:white;color:#31435d;padding:10px 13px;font-weight:650;min-height:44px;white-space:nowrap}.btn.primary{background:#3e69c4;border-color:#3e69c4;color:white}.btn.soft{color:#315cae;border-color:#d7e3fb;background:#edf2fd}.btn.danger{color:#b84a4a;border-color:#f0d0d0;background:#fffafa}.btn.sm{font-size:12px;min-height:36px;padding:7px 10px}.btn.full{width:100%}.button-row{display:flex;gap:8px;flex-wrap:wrap}.button-row>.btn{flex:1}.minihead{display:flex;align-items:center;gap:9px}.number{height:28px;width:28px;border-radius:10px;background:#3e69c4;color:white;display:grid;place-items:center;font-size:13px;font-weight:800}.item-head{display:flex;gap:12px;align-items:center;justify-content:space-between;margin-bottom:14px}.item-head h3{font-size:17px;margin:0}.item-head .sub{font-size:12px;color:#758197;margin-top:3px}.items{display:grid;gap:16px}.pair-card{border:1px solid #d9e3f1;border-radius:16px;padding:15px;background:#fbfcff}.pair-body{display:grid;grid-template-columns:minmax(0,.86fr) minmax(0,1.14fr);gap:16px}.editor{min-width:0}.photo-inputs{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:13px 0}.photo-pick{position:relative;min-width:0;background:white;border:1px dashed #b6c6e0;border-radius:13px;padding:10px}.photo-pick h4{margin:0 0 8px;font-size:13px}.photo-pick label{display:block;padding:8px 6px;text-align:center;font-size:12px;cursor:pointer;border-radius:8px;border:1px solid #d0dcf0;color:#3866b8;background:#f4f7ff;font-weight:700}.photo-pick input{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}.photo-pick small{display:block;min-height:20px;color:#778398;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:7px}.tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin:10px 0}.tab{padding:10px 7px;border-radius:10px;border:1px solid #cbd8ed;background:#fff;color:#537096;font-weight:750;font-size:13px;min-height:42px}.tab.active{background:#3e69c4;border-color:#3e69c4;color:white}.switch-line{display:flex;align-items:center;gap:9px;font-size:13px;color:#495970;cursor:pointer;margin:10px 0 13px}.preview-col{min-width:0}.preview-head{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:9px}.preview-head strong{font-size:13px}.preview-head small{font-size:11px;color:#728097}.preview-frame{background:#e6ecf6;border-radius:14px;overflow:hidden;border:1px solid #d7e0ed}.compare{width:100%;aspect-ratio:4/3;position:relative;background:#e4ecf8;overflow:hidden;touch-action:pan-y}.compare.lr{display:grid;grid-template-columns:1fr 1fr}.compare.tb{display:grid;grid-template-rows:1fr 1fr;aspect-ratio:4/5}.compare .pane{position:relative;overflow:hidden;min-width:0;min-height:0;background:#e7eef9}.compare .photo{width:100%;height:100%;object-fit:cover;position:absolute;inset:0;pointer-events:none;user-select:none}.compare .label{position:absolute;z-index:3;top:10px;left:10px;color:white;background:#1d335bb8;border-radius:7px;font-size:10px;font-weight:800;letter-spacing:.04em;padding:5px 8px;pointer-events:none}.compare .placeholder{position:absolute;inset:0;display:grid;place-items:center;color:#76859c;font-size:12px;text-align:center;padding:12px}.compare.lr .pane+.pane{border-left:2px solid #fff}.compare.tb .pane+.pane{border-top:2px solid #fff}.slider-surface{position:relative;height:100%;width:100%;touch-action:none;cursor:ew-resize}.slider-layer{position:absolute;inset:0;overflow:hidden}.slider-layer.after{z-index:2}.slider-label-right{right:10px;left:auto!important}.divider-line{position:absolute;top:0;bottom:0;width:3px;background:white;z-index:4;box-shadow:0 0 4px #182b4e66;pointer-events:none}.handle{position:absolute;top:50%;z-index:5;transform:translate(-50%,-50%);height:36px;width:36px;display:grid;place-items:center;background:white;border:2px solid #3d67bd;color:#3d67bd;border-radius:50%;font-weight:850;box-shadow:0 2px 12px #1b324f60;pointer-events:none}.slider-row{padding:10px 13px;background:white;border-top:1px solid #dce4ee}.slider-row label{display:flex;align-items:center;gap:10px;font-size:12px;color:#596a82}.slider-row input{flex:1}.adjustments{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:13px}.adjust{background:#fff;border:1px solid #e0e7f1;border-radius:12px;padding:10px}.adjust b{font-size:12px;display:block;margin-bottom:8px}.adjust label{display:block;font-size:11px;color:#697a93;margin:6px 0}.adjust input{display:block;margin-top:1px}.pair-foot{margin-top:13px;display:flex;gap:8px;justify-content:space-between;flex-wrap:wrap;align-items:center}.hint{font-size:12px;line-height:1.65;color:#66768c}.footnote{text-align:center;font-size:12px;line-height:1.7;color:#728095;margin:17px 0 0}.add-wrap{text-align:center;border:1px dashed #adc3ea;background:#f9fbff;padding:20px 12px;border-radius:17px}.add-wrap p{font-size:12px;color:#6e7f95;margin:8px 0 0}.footer-actions{position:fixed;bottom:0;left:0;right:0;z-index:20;background:#fffe;backdrop-filter:blur(12px);border-top:1px solid #dce4ed;padding:11px max(16px,env(safe-area-inset-left)) calc(11px + env(safe-area-inset-bottom))}.footer-actions .inner{max-width:1060px;margin:auto;display:flex;align-items:center;gap:9px}.footer-actions .btn{flex:1;min-width:0}.foot-status{font-size:11px;color:#60718b;display:block;padding-bottom:8px}.toast{position:fixed;z-index:40;left:50%;bottom:110px;background:#1c2c43;color:white;padding:11px 16px;border-radius:12px;transform:translateX(-50%);opacity:0;pointer-events:none;transition:opacity .2s;max-width:min(94vw,500px);text-align:center}.toast.show{opacity:1}.helper{font-size:11px;color:#77879a}.editor .field+.field{margin-top:10px}@media(max-width:900px){.pair-body{grid-template-columns:1fr}.preview-col{order:initial}.app{max-width:700px}}@media(max-width:620px){.app{padding:14px 13px 136px}.brand h1{font-size:22px;white-space:nowrap}.topbar .status{display:none}.topbar{gap:5px}.status{font-size:10px}.card{padding:14px}.form-grid.three,.form-grid{grid-template-columns:1fr 1fr}.form-grid.three .field:first-child{grid-column:1/-1}.pair-card{padding:12px}.item-head{align-items:start}.item-head .button-row{gap:4px;justify-content:flex-end}.btn.sm{font-size:11px;padding:6px 7px}.photo-inputs{gap:8px}.adjustments{gap:7px}.adjust{padding:8px}.footer-actions .btn{font-size:13px;padding:10px 5px;white-space:normal;line-height:1.25}.footer-actions .inner{gap:6px}.foot-status{padding-bottom:4px}}@media(max-width:350px){.brand p{display:none}.brand h1{font-size:18px}.number{width:25px;height:25px}}@media print{.footer-actions{display:none}}
+
+
+/* Typography system: title / section / body / supporting text. */
+:root { font-size: 16px; }
+.brand h1 { font-size: 22px; }
+.brand p, .status { font-size: 14px; }
+.intro strong { font-size: 16px; }
+.intro p { font-size: 14px; line-height: 1.65; }
+.card-head h2 { font-size: 20px; }
+.card-head p { font-size: 14px; line-height: 1.55; }
+.field span { font-size: 14px; }
+.pill { font-size: 13px; }
+.btn, .btn.sm { font-size: 15px; }
+.btn.sm { min-height: 40px; padding: 8px 11px; }
+.number { font-size: 14px; }
+.item-head h3 { font-size: 18px; }
+.item-head .sub { font-size: 14px; }
+.photo-pick h4 { font-size: 14px; }
+.photo-pick label { font-size: 14px; }
+.photo-pick small { font-size: 13px; }
+.tab { font-size: 15px; }
+.switch-line { font-size: 14px; }
+.preview-head strong { font-size: 15px; }
+.preview-head small { font-size: 13px; }
+.compare .label { font-size: 13px; }
+.compare .placeholder { font-size: 14px; }
+.slider-row label { font-size: 14px; }
+.adjust b { font-size: 14px; }
+.adjust label { font-size: 13px; }
+.hint, .footnote, .add-wrap p { font-size: 14px; }
+.foot-status, .helper { font-size: 13px; }
+@media (max-width: 620px) {
+  .brand h1 { font-size: 22px; }
+  .btn.sm { font-size: 14px; padding: 8px 10px; }
+  .footer-actions .btn { font-size: 15px; }
+  .foot-status { font-size: 13px; }
+  .intro p, .card-head p { font-size: 14px; }
+}
+@media (max-width: 350px) {
+  .brand h1 { font-size: 19px; }
+}
+
+/* Mobile form fix: prevent Safari date control from overflowing into customer input. */
+.form-grid > .field { min-width: 0; }
+.form-grid > .field > input { display: block; width: 100%; max-width: 100%; min-width: 0; }
+@media (max-width: 620px) {
+  .form-grid.three { grid-template-columns: minmax(0, 1fr); row-gap: 14px; }
+  .form-grid.three .field:first-child { grid-column: auto; }
+  .form-grid:not(.three) { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 12px; }
+}
+
+/* 単体写真モード */
+.compare.single{display:block;aspect-ratio:4/3}
+.compare.single .pane{height:100%;width:100%}
+.compare.single .photo{object-fit:contain}
+.compare.single .placeholder{line-height:1.7}
+.kind-selector{display:flex;gap:8px;margin:0 0 14px;flex-wrap:wrap}
+.kind-selector button{flex:1;min-width:120px;min-height:43px;border:1px solid #cedbef;background:#fff;color:#4a6083;border-radius:10px;font-weight:750}
+.kind-selector button.active{background:#3e69c4;color:#fff;border-color:#3e69c4}
+.single-photo-pick{margin-bottom:13px}
+.single-photo-pick label{padding:12px 7px}
+@media(max-width:550px){.add-wrap .button-row{flex-direction:column}.add-wrap .button-row button{width:100%}}
+</style>
+</head>
+<body>
+<div class="app">
+ <header class="topbar"><div class="brand"><div class="brandmark" aria-hidden="true">B/A</div><div><h1>ビフォアフつくるくん</h1><p>比較写真から作業報告書をかんたん作成</p></div></div><span class="status"><span class="dot"></span><span id="saveStatus">準備中…</span></span></header>
+ <div class="intro"><strong>写真を選んで、お客様に渡せるPDFへ。</strong><p>左右・上下・スライダー比較に加え、単体写真も掲載できます。PDFはA4縦で1項目1ページです。</p></div>
+ <section class="card"><div class="card-head"><div><h2>報告書の情報</h2><p>会社名・名前は端末に保存され、次の報告書にも引き継がれます。</p></div><span class="pill">共通情報</span></div>
+  <div class="form-grid three"><label class="field"><span>タイトル</span><input id="docTitle" type="text" maxlength="45" placeholder="作業前後のご報告"></label><label class="field"><span>施工日</span><input id="workDate" type="date"></label><label class="field"><span>お客様名（任意）</span><input id="customerName" type="text" maxlength="80" placeholder="お客様名"></label></div>
+  <div class="form-grid" style="margin-top:12px"><label class="field"><span>会社名（任意）</span><input id="companyName" type="text" maxlength="75" placeholder="会社名"></label><label class="field"><span>名前（任意）</span><input id="staffName" type="text" maxlength="60" placeholder="名前"></label><label class="field full"><span>全体メモ（任意・PDFの1ページ目に表示）</span><textarea id="docNote" maxlength="120" placeholder="例：作業前後の写真をご確認ください。"></textarea></label></div>
+ </section>
+ <section class="card"><div class="card-head"><div><h2>比較セット <span id="pairCount" class="pill">1セット</span></h2><p>比較写真（2枚）と単体写真（1枚）を自由に並べて、同じPDFにできます。</p></div><span id="photoCount" class="pill">0件 完成</span></div>
+  <div id="pairs" class="items"></div>
+  <div class="add-wrap" style="margin-top:14px"><div class="button-row"><button id="addPair" class="btn soft">＋ 比較写真（2枚）</button><button id="addSingle" class="btn primary">＋ 単体写真（1枚）</button></div><p>並び順がそのままPDFのページ順になります。</p></div>
+ </section>
+ <div class="button-row"><button id="newDocument" class="btn danger">新しく作成（入力を消去）</button></div>
+ <p class="footnote">会員登録・広告なし。写真は端末内で処理され、サーバーに送信されません。<br>会社名と担当者名だけを端末保存します。顧客名・写真・コメントは再読み込みすると消えます。<br>写真の個人情報は、お客様の許可を確認してから共有してください。</p>
+</div>
+<div class="footer-actions"><div class="inner"><button id="createPdf" class="btn primary" disabled>PDFを保存</button><button id="sharePdf" class="btn soft" disabled>PDFを共有</button></div><div class="inner"><span id="footerStatus" class="foot-status">準備中…</span></div></div>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+<script>(()=>{'use strict';
+const $=id=>document.getElementById(id);
+const DB='before_after_tsukurukun_v1',STORE='drafts',CURRENT='current',FALLBACK='before_after_tsukurukun_fallback_v1',IDENTITY='before_after_tsukurukun_identity_v1';
+const state={title:'作業前後のご報告',date:'',company:'',staff:'',customer:'',note:'',pairs:[]};
+const emptyAdj=()=>({zoom:1,x:0,y:0});
+const newPair=()=>({id:crypto.randomUUID?.()||String(Date.now())+Math.random(),kind:'pair',title:'',comment:'',before:'',after:'',mode:'lr',slider:50,labels:true,beforeAdj:emptyAdj(),afterAdj:emptyAdj()});
+const newSingle=()=>({id:crypto.randomUUID?.()||String(Date.now())+Math.random(),kind:'single',title:'',comment:'',photo:'',photoAdj:emptyAdj()});
+const isSingle=p=>p.kind==='single';
+const isReady=p=>isSingle(p)?!!p.photo:!!(p.before&&p.after);
+let db=null,saveTimer=0,saving=false,saveAgain=false;
+const validModes=new Set(['lr','tb','slider']);
+const escape=s=>String(s??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+const clamp=(n,min,max)=>Math.min(max,Math.max(min,Number(n)||0));
+const getPair=id=>state.pairs.find(p=>p.id===id);
+const toast=msg=>{const el=$('toast');el.textContent=msg;el.classList.add('show');clearTimeout(toast.timer);toast.timer=setTimeout(()=>el.classList.remove('show'),2500)};
+function setStatus(message){$('saveStatus').textContent=message;$('footerStatus').textContent=message}
+function openDb(){return new Promise((resolve,reject)=>{if(!('indexedDB'in window)){reject(new Error('IndexedDBなし'));return}const r=indexedDB.open(DB,1);r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains(STORE))r.result.createObjectStore(STORE)};r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)})}
+function readDraft(){return new Promise((resolve,reject)=>{if(!db){resolve(null);return}const tx=db.transaction(STORE,'readonly'),q=tx.objectStore(STORE).get(CURRENT);q.onsuccess=()=>resolve(q.result||null);q.onerror=()=>reject(q.error)})}
+function putDraft(data){return new Promise((resolve,reject)=>{const tx=db.transaction(STORE,'readwrite');tx.objectStore(STORE).put(data,CURRENT);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error||Error('保存できません'));tx.onabort=()=>reject(tx.error||Error('保存が中断されました'))})}
+function saveSoon(){persistIdentity();setStatus('会社名・名前のみ端末保存')}
+async function saveNow(){persistIdentity();setStatus('会社名・名前のみ端末保存')}
+function migrate(raw){if(!raw||typeof raw!=='object')return;for(const k of ['title','date','company','staff','customer','note'])if(typeof raw[k]==='string')state[k]=raw[k];if(Array.isArray(raw.pairs)){state.pairs=raw.pairs.slice(0,100).map(p=>({id:String(p.id||newPair().id),title:String(p.title||''),comment:String(p.comment||''),before:typeof p.before==='string'?p.before:'',after:typeof p.after==='string'?p.after:'',mode:validModes.has(p.mode)?p.mode:'lr',slider:clamp(p.slider??50,0,100),labels:p.labels!==false,beforeAdj:{zoom:clamp(p.beforeAdj?.zoom??1,1,3),x:clamp(p.beforeAdj?.x??0,-55,55),y:clamp(p.beforeAdj?.y??0,-55,55)},afterAdj:{zoom:clamp(p.afterAdj?.zoom??1,1,3),x:clamp(p.afterAdj?.x??0,-55,55),y:clamp(p.afterAdj?.y??0,-55,55)}}))}}
+// 会社名と名前は報告書の下書きとは別に端末へ保存する。
+// 新規作成・下書きの作り直し後も維持し、入力を空にした場合もその変更を保存する。
+function persistIdentity(){try{localStorage.setItem(IDENTITY,JSON.stringify({company:state.company,staff:state.staff}))}catch(e){console.warn('会社名・名前の保存:',e)}}
+function restoreIdentity(){
+ try{
+  const saved=localStorage.getItem(IDENTITY);
+  if(saved!==null){
+   const data=JSON.parse(saved);
+   if(data&&typeof data==='object'){
+    if(typeof data.company==='string')state.company=data.company;
+    if(typeof data.staff==='string')state.staff=data.staff;
+   }
+  }else{
+   // 既存ユーザーの入力を新しい設定へ引き継ぐ。
+   persistIdentity();
+  }
+ }catch(e){console.warn('会社名・名前の復元:',e)}
+}
+function hydrateForm(){for(const [id,key] of Object.entries({docTitle:'title',workDate:'date',companyName:'company',staffName:'staff',customerName:'customer',docNote:'note'}))$(id).value=state[key]}
+function transform(adj){return `translate(${Number(adj.x)||0}%,${Number(adj.y)||0}%) scale(${Number(adj.zoom)||1})`}
+function photoHtml(src,adj,placeholder){return src?`<img class="photo" draggable="false" alt="" src="${src}" style="transform:${transform(adj)}">`:`<div class="placeholder">${placeholder}<br>写真を選んでください</div>`}
+function label(text,side){return `<span class="label ${side?'slider-label-right':''}">${text}</span>`}
+function preview(pair){if(isSingle(pair))return `<div class="preview-frame"><div class="compare single" data-preview="${pair.id}"><div class="pane" data-photo="photo">${photoHtml(pair.photo,pair.photoAdj,'単体写真')}</div></div></div>`;let inner='';if(pair.mode==='lr'||pair.mode==='tb'){
+ inner=`<div class="pane" data-photo="before">${photoHtml(pair.before,pair.beforeAdj,'BEFORE')}${pair.labels?label('BEFORE'):''}</div><div class="pane" data-photo="after">${photoHtml(pair.after,pair.afterAdj,'AFTER')}${pair.labels?label('AFTER'):''}</div>`;
+}else{
+ inner=`<div class="slider-surface" data-slide-surface="${pair.id}"><div class="slider-layer before" data-photo="before">${photoHtml(pair.before,pair.beforeAdj,'BEFORE')}${pair.labels?label('BEFORE'):''}</div><div class="slider-layer after" data-photo="after" style="clip-path:inset(0 0 0 ${pair.slider}%)">${photoHtml(pair.after,pair.afterAdj,'AFTER')}${pair.labels?label('AFTER',true):''}</div><div class="divider-line" style="left:${pair.slider}%"></div><div class="handle" style="left:${pair.slider}%">↔</div></div>`;
+}
+return `<div class="preview-frame"><div class="compare ${pair.mode}" data-preview="${pair.id}">${inner}</div>${pair.mode==='slider'?`<div class="slider-row"><label>比較位置 <input aria-label="比較位置" data-slider="${pair.id}" type="range" min="0" max="100" value="${pair.slider}"> <span data-slider-value="${pair.id}">${pair.slider}%</span></label></div>`:''}</div>`}
+function adjustHtml(pair,side){const a=pair[side+'Adj'];return `<div class="adjust"><b>${side==='photo'?'単体写真':side==='before'?'BEFORE':'AFTER'} の位置</b>${[['zoom','拡大',1,3,.01],['x','左右',-55,55,1],['y','上下',-55,55,1]].map(([key,txt,min,max,step])=>`<label>${txt}<input aria-label="${side}${txt}" data-adjust="${pair.id}" data-side="${side}" data-key="${key}" type="range" min="${min}" max="${max}" step="${step}" value="${a[key]}"></label>`).join('')}<button class="btn sm soft full" data-reset-adj="${pair.id}" data-side="${side}">位置を戻す</button></div>`}
+function kindSelector(pair){return `<div class="kind-selector"><button class="${isSingle(pair)?'':'active'}" data-kind="pair" data-id="${pair.id}" type="button">比較（2枚）</button><button class="${isSingle(pair)?'active':''}" data-kind="single" data-id="${pair.id}" type="button">単体写真（1枚）</button></div>`}
+function singleMarkup(pair,index){const complete=isReady(pair),pageNumber=state.pairs.slice(0,index+1).filter(isReady).length;return `<article class="pair-card" data-pair="${pair.id}">
+<div class="item-head"><div class="minihead"><div class="number">${index+1}</div><div><h3 data-pair-heading="${pair.id}">${escape(pair.title||`写真 ${index+1}`)}</h3><div class="sub">${complete?`PDF ${pageNumber}ページ目`:'写真を選ぶとPDFに追加'}</div></div></div><div class="button-row"><button class="btn sm" data-move="${pair.id}" data-dir="-1" ${index===0?'disabled':''} aria-label="前へ移動">↑</button><button class="btn sm" data-move="${pair.id}" data-dir="1" ${index===state.pairs.length-1?'disabled':''} aria-label="後へ移動">↓</button><button class="btn sm danger" data-remove="${pair.id}" aria-label="写真を削除">削除</button></div></div>
+<div class="pair-body"><div class="editor">${kindSelector(pair)}<label class="field"><span>写真のタイトル</span><input type="text" data-text="title" data-id="${pair.id}" maxlength="70" placeholder="例：取付完了写真" value="${escape(pair.title)}"></label><div class="photo-pick single-photo-pick"><h4>掲載する写真</h4><label>写真を選ぶ・変更<input data-file="photo" data-id="${pair.id}" type="file" accept="image/*"></label><small>${pair.photo?'写真を設定済み':'未設定'}</small></div><label class="field"><span>写真コメント（PDFにも表示）</span><textarea data-text="comment" data-id="${pair.id}" maxlength="250" placeholder="写真についての説明を入力">${escape(pair.comment)}</textarea></label></div><div class="preview-col"><div class="preview-head"><strong>プレビュー</strong><small>A4縦・単体写真</small></div>${preview(pair)}<div class="adjustments" style="grid-template-columns:1fr">${adjustHtml(pair,'photo')}</div><div class="pair-foot"><span class="hint">写真の位置調整はPDFにも反映されます。</span></div></div></div></article>`}
+function pairMarkup(pair,index){if(isSingle(pair))return singleMarkup(pair,index);const complete=isReady(pair);const pageNumber=state.pairs.slice(0,index+1).filter(isReady).length;return `<article class="pair-card" data-pair="${pair.id}">
+ <div class="item-head"><div class="minihead"><div class="number">${index+1}</div><div><h3 data-pair-heading="${pair.id}">${escape(pair.title||`比較セット ${index+1}`)}</h3><div class="sub">${complete?`PDF ${pageNumber}ページ目`:'写真が揃うとPDFに追加'}</div></div></div><div class="button-row"><button class="btn sm" data-move="${pair.id}" data-dir="-1" ${index===0?'disabled':''} aria-label="前へ移動">↑</button><button class="btn sm" data-move="${pair.id}" data-dir="1" ${index===state.pairs.length-1?'disabled':''} aria-label="後へ移動">↓</button><button class="btn sm danger" data-remove="${pair.id}" aria-label="比較セットを削除">削除</button></div></div>
+ <div class="pair-body"><div class="editor">${kindSelector(pair)}<label class="field"><span>このセットの作業名</span><input type="text" data-text="title" data-id="${pair.id}" maxlength="70" placeholder="例：エアコン洗浄前後" value="${escape(pair.title)}"></label>
+ <div class="photo-inputs"><div class="photo-pick"><h4>BEFORE 写真</h4><label>写真を選ぶ・変更<input data-file="before" data-id="${pair.id}" type="file" accept="image/*"></label><small>${pair.before?'写真を設定済み':'未設定'}</small></div><div class="photo-pick"><h4>AFTER 写真</h4><label>写真を選ぶ・変更<input data-file="after" data-id="${pair.id}" type="file" accept="image/*"></label><small>${pair.after?'写真を設定済み':'未設定'}</small></div></div>
+ <div class="tabs" role="group" aria-label="比較表示形式">${[['lr','左右'],['tb','上下'],['slider','スライダー']].map(([v,text])=>`<button class="tab ${pair.mode===v?'active':''}" data-mode="${v}" data-id="${pair.id}" aria-pressed="${pair.mode===v}">${text}</button>`).join('')}</div>
+ <label class="switch-line"><input data-labels="${pair.id}" type="checkbox" ${pair.labels?'checked':''}> BEFORE / AFTER の文字を表示</label>
+ <label class="field"><span>この比較セットへのコメント（PDFにも表示）</span><textarea data-text="comment" data-id="${pair.id}" maxlength="250" placeholder="例：清掃前の汚れを除去し、仕上がりを確認しました。">${escape(pair.comment)}</textarea></label><div class="helper">写真ごとではなく、比較セットごとにコメントを保存します。</div></div>
+ <div class="preview-col"><div class="preview-head"><strong>プレビュー</strong><small>PDFは常に上下配置</small></div>${preview(pair)}<div class="adjustments">${adjustHtml(pair,'before')}${adjustHtml(pair,'after')}</div><div class="pair-foot"><span class="hint">位置調整はPDFにも反映されます。</span><button class="btn sm soft" data-export-image="${pair.id}">比較画像を保存</button></div></div></div></article>`}
+function renderPairs(){const root=$('pairs');root.innerHTML=state.pairs.map(pairMarkup).join('');$('pairCount').textContent=state.pairs.length+'項目';const ready=state.pairs.filter(isReady).length;$('photoCount').textContent=ready+'件 完成';$('createPdf').disabled=!ready;$('sharePdf').disabled=!ready}
+function updatePreview(id){const p=getPair(id);if(!p)return;const el=document.querySelector(`[data-pair="${CSS.escape(id)}"]`);if(!el)return;const box=el.querySelector('.preview-frame');if(box){const next=document.createElement('div');next.innerHTML=preview(p);box.replaceWith(next.firstElementChild)}}
+function positionSlider(p){const el=document.querySelector(`[data-pair="${CSS.escape(p.id)}"]`);if(!el)return;const after=el.querySelector('.slider-layer.after');const line=el.querySelector('.divider-line');const handle=el.querySelector('.handle');const value=el.querySelector(`[data-slider-value="${CSS.escape(p.id)}"]`);if(after)after.style.clipPath=`inset(0 0 0 ${p.slider}%)`;if(line)line.style.left=p.slider+'%';if(handle)handle.style.left=p.slider+'%';if(value)value.textContent=p.slider+'%'}
+function updateTransform(p,side){const el=document.querySelector(`[data-pair="${CSS.escape(p.id)}"] [data-photo="${side}"] img`);if(el)el.style.transform=transform(p[side+'Adj'])}
+function addPair(){if(state.pairs.length>=30){toast('写真は30項目まで追加できます');return}state.pairs.push(newPair());renderPairs();saveSoon();toast('比較セットを追加しました');requestAnimationFrame(()=>document.querySelectorAll('.pair-card')[state.pairs.length-1]?.scrollIntoView({behavior:'smooth',block:'center'}))}
+function setSlideFromPointer(e){const surface=e.target.closest('[data-slide-surface]');if(!surface)return;const p=getPair(surface.dataset.slideSurface);if(!p)return;const rect=surface.getBoundingClientRect();p.slider=Math.round(clamp((e.clientX-rect.left)/rect.width*100,0,100));positionSlider(p);const input=document.querySelector(`[data-slider="${CSS.escape(p.id)}"]`);if(input)input.value=p.slider;saveSoon()}
+$('pairs').addEventListener('pointerdown',e=>{const el=e.target.closest('[data-slide-surface]');if(!el)return;el.setPointerCapture?.(e.pointerId);setSlideFromPointer(e)});
+$('pairs').addEventListener('pointermove',e=>{if(e.buttons===1&&e.target.closest('[data-slide-surface]'))setSlideFromPointer(e)});
+$('pairs').addEventListener('input',e=>{const t=e.target,p=getPair(t.dataset.id||t.dataset.adjust||t.dataset.slider||t.dataset.labels);if(!p)return;
+ if(t.dataset.text){p[t.dataset.text]=t.value;if(t.dataset.text==='title'){const heading=document.querySelector(`[data-pair-heading="${CSS.escape(p.id)}"]`);if(heading)heading.textContent=p.title||(isSingle(p)?`写真 ${state.pairs.indexOf(p)+1}`:`比較セット ${state.pairs.indexOf(p)+1}`)}saveSoon();return}
+ if(t.dataset.adjust){p[t.dataset.side+'Adj'][t.dataset.key]=Number(t.value);updateTransform(p,t.dataset.side);saveSoon();return}
+ if(t.dataset.slider){p.slider=Number(t.value);positionSlider(p);saveSoon()}
+});
+$('pairs').addEventListener('change',async e=>{const t=e.target,p=getPair(t.dataset.id||t.dataset.labels);if(!p)return;
+ if(t.dataset.labels){p.labels=t.checked;updatePreview(p.id);saveSoon();return}
+ if(t.dataset.file){const file=t.files?.[0];if(!file)return;try{t.disabled=true;setStatus('写真を読み込み中…');p[t.dataset.file]=await imageToJpeg(file);renderPairs();saveSoon();toast('写真を読み込みました')}catch(err){console.error(err);toast('この画像を読み込めませんでした')}finally{t.disabled=false} }
+});
+$('pairs').addEventListener('click',async e=>{const t=e.target.closest('button');if(!t)return;const id=t.dataset.id||t.dataset.move||t.dataset.remove||t.dataset.resetAdj||t.dataset.exportImage,p=getPair(id);if(!p)return;
+ if(t.dataset.kind){if(t.dataset.kind==='single'&&!isSingle(p)){p.kind='single';p.photo=p.photo||'';p.photoAdj=p.photoAdj||emptyAdj();renderPairs();saveSoon()}else if(t.dataset.kind==='pair'&&isSingle(p)){p.kind='pair';p.before=p.before||'';p.after=p.after||'';p.beforeAdj=p.beforeAdj||emptyAdj();p.afterAdj=p.afterAdj||emptyAdj();p.mode=p.mode||'lr';renderPairs();saveSoon()}}
+ else if(t.dataset.mode){p.mode=t.dataset.mode;renderPairs();saveSoon()}
+ else if(t.dataset.remove){if(!confirm('この比較セットを削除しますか？'))return;state.pairs=state.pairs.filter(x=>x.id!==id);if(!state.pairs.length)state.pairs=[newPair()];renderPairs();saveSoon()}
+ else if(t.dataset.move){const index=state.pairs.indexOf(p),dest=index+Number(t.dataset.dir);if(dest<0||dest>=state.pairs.length)return;state.pairs.splice(index,1);state.pairs.splice(dest,0,p);renderPairs();saveSoon()}
+ else if(t.dataset.resetAdj){p[t.dataset.side+'Adj']=emptyAdj();renderPairs();saveSoon()}
+ else if(t.dataset.exportImage){if(!p.before||!p.after){toast('BEFORE・AFTERの写真を2枚選んでください');return}try{t.disabled=true;const canvas=await comparisonCanvas(p);const blob=await canvasToBlob(canvas,'image/jpeg',.92);downloadBlob(blob,`${safeName(p.title||'比較セット')}.jpg`);toast('比較画像を保存しました')}catch(err){console.error(err);toast('画像を保存できませんでした')}finally{t.disabled=false}}
+});
+for(const [id,key] of Object.entries({docTitle:'title',workDate:'date',companyName:'company',staffName:'staff',customerName:'customer',docNote:'note'}))$(id).addEventListener('input',e=>{state[key]=e.target.value;if(key==='company'||key==='staff')persistIdentity();saveSoon()});
+$('addPair').addEventListener('click',addPair);$('addSingle').addEventListener('click',()=>{if(state.pairs.length>=30){toast('写真は30項目まで追加できます');return}state.pairs.push(newSingle());renderPairs();saveSoon();toast('単体写真を追加しました');requestAnimationFrame(()=>document.querySelectorAll('.pair-card')[state.pairs.length-1]?.scrollIntoView({behavior:'smooth',block:'center'}))});
+$('newDocument').addEventListener('click',()=>{if(!confirm('現在の入力と写真を消して、新しく作成しますか？'))return;Object.assign(state,{title:'作業前後のご報告',date:'',customer:'',note:'',pairs:[newPair()]});hydrateForm();renderPairs();saveSoon();toast('新しく作成しました')});
+
+function imageToJpeg(file){return new Promise((resolve,reject)=>{if(!file.type.startsWith('image/')&&!/\.hei[cf]$/i.test(file.name)){reject(Error('画像ファイルではありません'));return}const url=URL.createObjectURL(file),img=new Image;img.onload=()=>{try{const limit=2100,factor=Math.min(1,limit/Math.max(img.naturalWidth,img.naturalHeight));const w=Math.max(1,Math.round(img.naturalWidth*factor)),h=Math.max(1,Math.round(img.naturalHeight*factor));const can=document.createElement('canvas');can.width=w;can.height=h;const ctx=can.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,w,h);ctx.drawImage(img,0,0,w,h);const result=can.toDataURL('image/jpeg',.86);resolve(result)}catch(err){reject(err)}finally{URL.revokeObjectURL(url)}};img.onerror=()=>{URL.revokeObjectURL(url);reject(Error('画像の読み込みに失敗'))};img.src=url})}
+function loadImage(data){return new Promise((resolve,reject)=>{if(!data){reject(Error('写真がありません'));return}const img=new Image;img.onload=()=>resolve(img);img.onerror=()=>reject(Error('写真の読み込みに失敗'));img.src=data})}
+function roundedRect(ctx,x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath()}
+function drawImageCrop(ctx,img,x,y,w,h,adj){ctx.save();ctx.beginPath();ctx.rect(x,y,w,h);ctx.clip();const z=clamp(adj.zoom??1,1,3),cover=Math.max(w/img.width,h/img.height)*z,iw=img.width*cover,ih=img.height*cover;const dx=x+(w-iw)/2+w*clamp(adj.x,-55,55)/100,dy=y+(h-ih)/2+h*clamp(adj.y,-55,55)/100;ctx.drawImage(img,dx,dy,iw,ih);ctx.restore()}
+function fitText(ctx,str,maxWidth,size,minSize){ctx.font=`700 ${size}px -apple-system,BlinkMacSystemFont,"Hiragino Sans",sans-serif`;while(ctx.measureText(str).width>maxWidth&&size>minSize){size--;ctx.font=`700 ${size}px -apple-system,BlinkMacSystemFont,"Hiragino Sans",sans-serif`}return size}
+function wrapLines(ctx,text,maxWidth,maxLines=100){const lines=[];for(const paragraph of String(text||'').split(/\r?\n/)){if(paragraph===''){lines.push('');continue}let line='';for(const char of paragraph){if(ctx.measureText(line+char).width>maxWidth&&line){lines.push(line);line=char}else line+=char}lines.push(line)}if(lines.length>maxLines){const short=lines.slice(0,maxLines);short[maxLines-1]=short[maxLines-1].slice(0,-2)+'…';return short}return lines}
+function drawTextLines(ctx,lines,x,y,lineHeight){for(const line of lines){ctx.fillText(line,x,y);y+=lineHeight}return y}
+function truncateWidth(ctx,str,maxWidth){if(ctx.measureText(str).width<=maxWidth)return str;let v=str;while(v&&ctx.measureText(v+'…').width>maxWidth)v=v.slice(0,-1);return v+'…'}
+function canvasToBlob(canvas,type,quality){return new Promise((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(Error('画像変換に失敗')),type,quality))}
+function blobDownloadUrl(blob){return URL.createObjectURL(blob)}
+function downloadBlob(blob,name){const url=blobDownloadUrl(blob),a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60_000)}
+function safeName(value){return String(value||'ビフォアフ').replace(/[\\/:*?"<>|\r\n]/g,'_').slice(0,55)}
+function normalizeCanvasImage(ctx,img,x,y,w,h,adj){ctx.save();roundedRect(ctx,x,y,w,h,12);ctx.clip();ctx.fillStyle='#eaf0f9';ctx.fillRect(x,y,w,h);drawImageCrop(ctx,img,x,y,w,h,adj);ctx.restore()}
+async function comparisonCanvas(pair){const c=document.createElement('canvas');c.width=1400;c.height=pair.mode==='tb'?1750:980;const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);const b=await loadImage(pair.before),a=await loadImage(pair.after);const m=38,top=60,gap=16,areaY=top,areaH=c.height-top-38;
+ x.fillStyle='#1e3153';x.font='700 29px sans-serif';x.fillText(pair.title||'BEFORE / AFTER',m,36);
+ const paint=(img,adj,x0,y0,w,h,labelText)=>{normalizeCanvasImage(x,img,x0,y0,w,h,adj);if(pair.labels){x.fillStyle='#1e3153c9';x.fillRect(x0+12,y0+12,165,40);x.fillStyle='white';x.font='700 24px sans-serif';x.fillText(labelText,x0+22,y0+40)}};
+ if(pair.mode==='lr'){const w=(c.width-m*2-gap)/2;paint(b,pair.beforeAdj,m,areaY,w,areaH,'BEFORE');paint(a,pair.afterAdj,m+w+gap,areaY,w,areaH,'AFTER')}
+ else if(pair.mode==='tb'){const h=(areaH-gap)/2;paint(b,pair.beforeAdj,m,areaY,c.width-m*2,h,'BEFORE');paint(a,pair.afterAdj,m,areaY+h+gap,c.width-m*2,h,'AFTER')}
+ else{const w=c.width-m*2,h=areaH;normalizeCanvasImage(x,b,m,areaY,w,h,pair.beforeAdj);x.save();x.beginPath();x.rect(m+w*pair.slider/100,areaY,w*(100-pair.slider)/100,h);x.clip();drawImageCrop(x,a,m,areaY,w,h,pair.afterAdj);x.restore();x.fillStyle='white';x.fillRect(m+w*pair.slider/100-2,areaY,4,h);if(pair.labels){x.fillStyle='#1e3153c9';x.fillRect(m+12,areaY+12,165,40);x.fillRect(m+w-177,areaY+12,165,40);x.fillStyle='white';x.font='700 24px sans-serif';x.fillText('BEFORE',m+22,areaY+40);x.fillText('AFTER',m+w-164,areaY+40)}}
+ return c}
+function normalizeContainedImage(ctx,img,x,y,w,h,adj){ctx.save();roundedRect(ctx,x,y,w,h,12);ctx.clip();ctx.fillStyle='#eaf0f9';ctx.fillRect(x,y,w,h);const z=clamp(adj?.zoom??1,1,3),ratio=Math.min(w/img.width,h/img.height)*z,iw=img.width*ratio,ih=img.height*ratio;ctx.drawImage(img,x+(w-iw)/2+w*clamp(adj?.x??0,-55,55)/100,y+(h-ih)/2+h*clamp(adj?.y??0,-55,55)/100,iw,ih);ctx.restore()}
+async function pageCanvas(pair,index,count){const c=document.createElement('canvas');c.width=1240;c.height=1754;const ctx=c.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,c.width,c.height);const ink='#21314b',muted='#60728b',primary='#325eb3',M=75,W=c.width-M*2;
+ ctx.fillStyle=primary;ctx.fillRect(M,65,64,7);
+ ctx.fillStyle=ink;fitText(ctx,state.title||'作業前後のご報告',W-175,45,28);ctx.fillText(state.title||'作業前後のご報告',M,126);
+ ctx.font='600 26px sans-serif';ctx.fillStyle=muted;ctx.textAlign='right';ctx.fillText(`${index+1} / ${count}`,c.width-M,124);ctx.textAlign='left';
+ ctx.fillStyle='#e0e7f1';ctx.fillRect(M,161,W,2);
+ const date=state.date?state.date.replaceAll('-','/'):'';
+ ctx.fillStyle=muted;ctx.font='26px sans-serif';const info=[state.customer&&`お客様：${state.customer}`,date&&`施工日：${date}`,state.company&&`会社名：${state.company}`,state.staff&&`名前：${state.staff}`].filter(Boolean);
+ let my=205;for(let i=0;i<info.length;i++){const col=i%2,row=Math.floor(i/2);const tx=M+col*555,ty=my+row*38;ctx.fillText(truncateWidth(ctx,info[i],490),tx,ty)}
+ const pTitle=pair.title||(isSingle(pair)?`写真 ${index+1}`:`比較セット ${index+1}`);ctx.fillStyle=ink;fitText(ctx,pTitle,W,34,26);ctx.fillText(pTitle,M,314);
+ const top1=359,ph=490,gap=90,top2=top1+ph+gap;
+ if(isSingle(pair)){
+  const photo=await loadImage(pair.photo);
+  ctx.fillStyle='#eff3f9';roundedRect(ctx,M,355,W,1040,13);ctx.fill();
+  normalizeContainedImage(ctx,photo,M,355,W,1040,pair.photoAdj||emptyAdj());
+  const comment=(pair.comment||'').trim(),globalComment=index===0?(state.note||'').trim():'';
+  const notes=[comment,globalComment?'全体メモ：'+globalComment:''].filter(Boolean).join('\n');
+  if(notes){ctx.fillStyle='#f2f5fb';roundedRect(ctx,M,1480,W,180,12);ctx.fill();ctx.fillStyle=primary;ctx.font='bold 26px sans-serif';ctx.fillText('写真コメント',M+22,1517);ctx.fillStyle=ink;ctx.font='24px sans-serif';drawTextLines(ctx,wrapLines(ctx,notes,W-48,4),M+22,1556,30)}
+  return c;
+ }
+ const before=await loadImage(pair.before),after=await loadImage(pair.after);
+ function frame(img,adj,y,tag){ctx.fillStyle='#eff3f9';roundedRect(ctx,M,y,W,ph,13);ctx.fill();normalizeCanvasImage(ctx,img,M,y,W,ph,adj);if(pair.labels){ctx.fillStyle='#1c3156e9';roundedRect(ctx,M+12,y+12,210,52,8);ctx.fill();ctx.fillStyle='#fff';ctx.font='bold 28px sans-serif';ctx.fillText(tag,M+30,y+47)}}
+ frame(before,pair.beforeAdj,top1,'BEFORE');frame(after,pair.afterAdj,top2,'AFTER');
+ const comment=(pair.comment||'').trim(),globalComment=index===0?(state.note||'').trim():'';
+ const text=[comment,globalComment?'全体メモ：'+globalComment:''].filter(Boolean).join('\n');
+ if(text){ctx.fillStyle='#f2f5fb';roundedRect(ctx,M,1497,W,164,12);ctx.fill();ctx.fillStyle=primary;ctx.font='bold 26px sans-serif';ctx.fillText('コメント',M+22,1532);ctx.fillStyle=ink;let fontSize=26,lines=[];for(;fontSize>=20;fontSize--){ctx.font=fontSize+'px sans-serif';lines=wrapLines(ctx,text,W-46);if(lines.length<=(fontSize>=25?4:5))break}const maxLines=fontSize>=25?4:5;if(lines.length>maxLines)lines=wrapLines(ctx,text,W-46,maxLines);drawTextLines(ctx,lines,M+22,1559,lines.length<=4?28:24)}
+ ctx.fillStyle='#d9e1ed';ctx.fillRect(M,1696,W,1);ctx.fillStyle=muted;ctx.font='20px sans-serif';ctx.fillText('作業前後の写真記録',M,1721);
+ return c}
+// Create JPEG-image-only PDF pages. Japanese text is rasterized with the browser font,
+// so it displays correctly even on devices without a Japanese-capable PDF viewer font.
+async function pdfFromJpegs(blobs){const enc=new TextEncoder(),parts=[],offsets=[0];let length=0;const push=data=>{const b=typeof data==='string'?enc.encode(data):data;parts.push(b);length+=b.byteLength};const obj=(n,content)=>{offsets[n]=length;push(`${n} 0 obj\n${content}\nendobj\n`)};
+ push('%PDF-1.4\n%\xE2\xE3\xCF\xD3\n');const n=blobs.length;obj(1,'<< /Type /Catalog /Pages 2 0 R >>');const pages=Array.from({length:n},(_,i)=>3+i*3);obj(2,`<< /Type /Pages /Count ${n} /Kids [${pages.map(i=>i+' 0 R').join(' ')}] >>`);
+ for(let i=0;i<n;i++){const page=pages[i],content=page+1,img=page+2;obj(page,`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.276 841.89] /Resources << /XObject << /Photo${i} ${img} 0 R >> >> /Contents ${content} 0 R >>`);const stream=`q 595.276 0 0 841.89 0 0 cm /Photo${i} Do Q\n`;obj(content,`<< /Length ${enc.encode(stream).byteLength} >>\nstream\n${stream}endstream`);
+  const bytes=new Uint8Array(await blobs[i].arrayBuffer());offsets[img]=length;push(`${img} 0 obj\n<< /Type /XObject /Subtype /Image /Width 1240 /Height 1754 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${bytes.length} >>\nstream\n`);push(bytes);push('\nendstream\nendobj\n');
+ }
+ const xref=length,pagesCount=2+n*3;push(`xref\n0 ${pagesCount+1}\n0000000000 65535 f \n`);for(let i=1;i<=pagesCount;i++)push(String(offsets[i]).padStart(10,'0')+' 00000 n \n');push(`trailer\n<< /Size ${pagesCount+1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`);return new Blob(parts,{type:'application/pdf'})}
+async function buildPdf(){const complete=state.pairs.filter(isReady);if(!complete.length)throw Error('掲載する写真がありません');const blobs=[];for(let i=0;i<complete.length;i++){setStatus(`PDFを作成中 ${i+1}/${complete.length}`);await new Promise(resolve=>requestAnimationFrame(()=>resolve()));const canvas=await pageCanvas(complete[i],i,complete.length);blobs.push(await canvasToBlob(canvas,'image/jpeg',.88));canvas.width=0;canvas.height=0}return pdfFromJpegs(blobs)}
+let pdfWorking=false;
+async function outputPdf(share){if(pdfWorking)return;pdfWorking=true;const btns=[$('createPdf'),$('sharePdf')];btns.forEach(b=>b.disabled=true);try{await saveNow();const blob=await buildPdf(),name=`${safeName(state.title)}_${state.date||new Date().toLocaleDateString('sv-SE')}.pdf`;if(share&&navigator.share&&navigator.canShare){const file=new File([blob],name,{type:'application/pdf'});if(navigator.canShare({files:[file]})){try{await navigator.share({files:[file],title:state.title||'ビフォーアフター報告書'});toast('PDFを共有しました');return}catch(err){if(err.name==='AbortError')return}}}downloadBlob(blob,name);toast(`PDFを作成しました（${state.pairs.filter(isReady).length}ページ）`)}catch(err){console.error(err);toast(err.message||'PDFの作成に失敗しました')}finally{pdfWorking=false;renderPairs();setStatus('会社名・名前のみ端末保存')}}
+$('createPdf').addEventListener('click',()=>outputPdf(false));$('sharePdf').addEventListener('click',()=>outputPdf(true));
+async function start(){state.date=new Date().toLocaleDateString('sv-SE');restoreIdentity();state.pairs=[newPair()];hydrateForm();renderPairs();setStatus('会社名・名前のみ端末保存')}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')saveNow()});window.addEventListener('pagehide',()=>{if(saveTimer)saveNow()});
+start();
+})();
+</script>
+</body></html>
