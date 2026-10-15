@@ -55,7 +55,6 @@ function feeResultsHtml(){
  ${s.paymentType==='card'?stat('カード決済手数料（税込・概算）',d.cardOrAto,true):''}
  ${s.paymentType==='ato'?stat('ATO決済手数料（概算）',d.cardOrAto,true):''}
  ${s.paymentType==='card'?stat('Stripe Connect費用（税込・概算）',d.stripe,true):''}
- ${stat('各種手数料差引後',d.afterFees)}
  ${s.taxEnabled?stat('消費税納税分として確保（概算）',d.taxReserve,true):''}
  ${stat('最終的な手取り目安',d.net,false,'total')}
  ${d.payoutFee?'<p class="hint">振込手数料は入金ごとに発生するため含めていません。決済手数料の端数処理などで実際の入金明細とは差が生じる場合があります。</p>':'<p class="hint">端数処理などで実際の入金明細とは差が生じる場合があります。</p>'}
