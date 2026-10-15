@@ -64,12 +64,12 @@ function render(){const [title,sub]=titles[s.page]||titles.home;$('heading').tex
 if(s.page==='home'){html=`<div class="grid">${[['fee','💴','手取り計算機','手数料を引く・価格を逆算'],['cancel','📅','キャンセル率','作業・キャンセル件数を管理'],['review','⭐','口コミ率','作業・口コミ件数を管理'],['rating','🌟','星評価','次の0.01まであと何件？']].map(([id,icon,name,desc])=>`<button class="tile" data-page="${id}"><span class="emoji">${icon}</span><strong>${name}</strong><small>${desc}</small></button>`).join('')}</div><p class="hint">数字はこの端末に保存。売上金額は計算だけで履歴に残しません。</p>`}
 if(s.page==='fee'){
  const cardPayment=s.paymentType==='card',atoPayment=s.paymentType==='ato';
- const paymentNote=cardPayment?'カード手数料は未確定の場合、高い方の3.2％（税抜）で自動計算します。Stripe Connect費用0.2％（税抜）も概算に含みます。':atoPayment?'ATO後払いの決済手数料4.5％で概算。振込手数料は税抜500円／振込で、1件ごとの計算には含めていません。':'通常のくらま手数料のみ計算します。';
+ const paymentNote=cardPayment?'カード決済手数料は選択した料率で計算します。Stripe Connect費用0.2％（税抜）も概算に含みます。':atoPayment?'ATO後払いの決済手数料4.5％で概算。振込手数料は税抜500円／振込で、1件ごとの計算には含めていません。':'通常のくらま手数料のみ計算します。';
  html=card('手取り計算',`<div class="switch" role="group" aria-label="計算方法"><button data-mode="deduct" class="${s.feeMode==='deduct'?'active':''}">手数料を引く</button><button data-mode="reverse" class="${s.feeMode==='reverse'?'active':''}">希望手取りから逆算</button></div>
  ${field('amount',s.feeMode==='deduct'?'請求金額（税込・円）':'希望する手取り額（円）',amount,'min="0" step="1" placeholder="金額を入力"')}
  ${selectField('paymentType','支払い方法',s.paymentType,[['none','通常手数料のみ'],['card','オンラインカード決済'],['ato','後払い（ATO）']])}
  <p class="hint payment-explanation">${paymentNote}</p>
- ${cardPayment?`${selectField('cardRateMode','カード決済の料率',s.cardRateMode,[['estimate','3.2％（税抜・高い方で概算）'],['confirmed278','2.78％（税込・明細確認後）'],['confirmed320','3.2％（税抜・確定）'],['custom','任意の料率（税抜）']])}${s.cardRateMode==='custom'?field('customCardRate','カード手数料率（税抜・％）',s.customCardRate,'min="0" max="100" step="0.01"'):''}`:''}
+ ${cardPayment?`${selectField('cardRateMode','カード決済の料率',s.cardRateMode,[['estimate','3.2％（税抜）'],['confirmed278','2.78％（税込）'],['confirmed320','3.2％（税抜）'],['custom','任意の料率（税抜）']])}${s.cardRateMode==='custom'?field('customCardRate','カード手数料率（税抜・％）',s.customCardRate,'min="0" max="100" step="0.01"'):''}`:''}
  <div class="twocol">${field('rate','くらま手数料率（％）',s.feeRate,'min="0" max="90" step="0.1"')}${field('minimum','最低手数料（税抜・円）',s.minimum,'min="0" step="1"')}</div>
  <p class="hint">くらま手数料の初期値は20％、最低2,000円（税抜）。手数料に消費税10％を加算します。</p>
  <div class="tax-block"><h3>消費税の納税分（概算）</h3>
