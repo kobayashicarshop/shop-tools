@@ -6,6 +6,7 @@ s.rating=Array.isArray(s.rating)&&s.rating.length===5?s.rating:fresh().rating;
 s.months=s.months&&typeof s.months==='object'?s.months:{};
 s.goals=Object.assign(fresh().goals,s.goals||{});
 if(previous.taxSettingsVersion!==2){s.taxEnabled=false;if(Number(s.taxReservePct)===100)s.taxReservePct=10;s.taxSettingsVersion=2}
+if(s.cardRateMode==='confirmed320')s.cardRateMode='estimate';
 const RESUME_MSEC=30*60*1000;
 if(!Number(s.lastUsedAt)||Date.now()-Number(s.lastUsedAt)>=RESUME_MSEC)s.page='home';
 s.lastUsedAt=Date.now();
@@ -69,7 +70,7 @@ if(s.page==='fee'){
  ${field('amount',s.feeMode==='deduct'?'請求金額（税込・円）':'希望する手取り額（円）',amount,'min="0" step="1" placeholder="金額を入力"')}
  ${selectField('paymentType','支払い方法',s.paymentType,[['none','通常手数料のみ'],['card','オンラインカード決済'],['ato','後払い（ATO）']])}
  <p class="hint payment-explanation">${paymentNote}</p>
- ${cardPayment?`${selectField('cardRateMode','カード決済の料率',s.cardRateMode,[['estimate','3.2％（税抜）'],['confirmed278','2.78％（税込）'],['confirmed320','3.2％（税抜）'],['custom','任意の料率（税抜）']])}${s.cardRateMode==='custom'?field('customCardRate','カード手数料率（税抜・％）',s.customCardRate,'min="0" max="100" step="0.01"'):''}`:''}
+ ${cardPayment?`${selectField('cardRateMode','カード決済の料率',s.cardRateMode,[['estimate','3.2％（税抜）'],['confirmed278','2.78％（税込）'],['custom','任意の料率（税抜）']])}${s.cardRateMode==='custom'?field('customCardRate','カード手数料率（税抜・％）',s.customCardRate,'min="0" max="100" step="0.01"'):''}`:''}
  <div class="twocol">${field('rate','くらま手数料率（％）',s.feeRate,'min="0" max="90" step="0.1"')}${field('minimum','最低手数料（税抜・円）',s.minimum,'min="0" step="1"')}</div>
  <p class="hint">くらま手数料の初期値は20％、最低2,000円（税抜）。手数料に消費税10％を加算します。</p>
  <div class="tax-block"><h3>消費税の納税分（概算）</h3>
