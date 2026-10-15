@@ -1,12 +1,13 @@
 (()=>{'use strict';
 const KEY='merchant_calcs_v1';const $=id=>document.getElementById(id);const now=new Date();const ym=()=>`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
-const fresh=()=>({rating:[0,0,0,0,0],months:{},goals:{cancel:5,review:80},feeRate:20,minimum:2000,feeMode:'deduct',taxEnabled:false,taxReservePct:10,taxSettingsVersion:2,paymentType:'none',cardRateMode:'estimate',customCardRate:3.2,atoRate:4.5,stripeConnectFee:0,cardPayoutFee:275,atoPayoutFee:550,includePayout:false,page:'home',year:now.getFullYear(),month:ym()});
+const fresh=()=>({rating:[0,0,0,0,0],months:{},goals:{cancel:5,review:80},feeRate:20,minimum:2000,feeMode:'deduct',taxEnabled:false,taxReservePct:10,taxSettingsVersion:2,paymentType:'none',cardRateMode:'estimate',atoRate:4.5,stripeConnectFee:0,cardPayoutFee:275,atoPayoutFee:550,includePayout:false,page:'home',year:now.getFullYear(),month:ym()});
 let s,previous={};try{previous=JSON.parse(localStorage.getItem(KEY)||'{}')||{};s=Object.assign(fresh(),previous)}catch{s=fresh()}
 s.rating=Array.isArray(s.rating)&&s.rating.length===5?s.rating:fresh().rating;
 s.months=s.months&&typeof s.months==='object'?s.months:{};
 s.goals=Object.assign(fresh().goals,s.goals||{});
 if(previous.taxSettingsVersion!==2){s.taxEnabled=false;if(Number(s.taxReservePct)===100)s.taxReservePct=10;s.taxSettingsVersion=2}
-if(s.cardRateMode==='confirmed320')s.cardRateMode='estimate';
+if(s.cardRateMode!=='confirmed278')s.cardRateMode='estimate';
+delete s.customCardRate;
 const RESUME_MSEC=30*60*1000;
 if(!Number(s.lastUsedAt)||Date.now()-Number(s.lastUsedAt)>=RESUME_MSEC)s.page='home';
 s.lastUsedAt=Date.now();
@@ -17,7 +18,7 @@ const escapeHtml=t=>String(t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>'
 const go=p=>{s.page=p;save();render();window.scrollTo(0,0)};const titles={home:['出店者の計算機','数字を入れるだけ。登録不要・端末内保存'],fee:['手取り計算機','手数料の差引・請求金額の逆算'],cancel:['キャンセル率','月ごとの実績を管理'],review:['口コミ率','月ごとの実績を管理'],rating:['星評価','星別件数を記録して次の評価を予測'],settings:['設定・バックアップ','端末内データの保存と復元']};
 const selectField=(id,label,selected,options)=>`<label class="field"><span>${label}</span><select id="${id}">${options.map(([value,name])=>`<option value="${value}" ${value===selected?'selected':''}>${name}</option>`).join('')}</select></label>`;
 const rateValue=(v,defaultValue=0,max=100)=>{const n=Number(v);return Number.isFinite(n)?Math.max(0,Math.min(max,n)):defaultValue};
-function paymentRate(){if(s.paymentType==='card')return s.cardRateMode==='confirmed278'?2.78:s.cardRateMode==='confirmed320'?3.2:s.cardRateMode==='custom'?rateValue(s.customCardRate,3.2,100):3.2;if(s.paymentType==='ato')return rateValue(s.atoRate,4.5,100);return 0}
+function paymentRate(){if(s.paymentType==='card')return s.cardRateMode==='confirmed278'?2.78:3.2;if(s.paymentType==='ato')return rateValue(s.atoRate,4.5,100);return 0}
 function feeDetails(gross){
  const a=safeInt(gross),r=rateValue(s.feeRate,20,90),min=safeInt(s.minimum);
  const platform=Math.floor(Math.max(a*r/100,min)*1.1+1e-9);
@@ -26,7 +27,7 @@ function feeDetails(gross){
  if(s.paymentType==='ato')cardOrAto=Math.floor(a*rateValue(s.atoRate,4.5,100)/100+1e-9);
  else if(s.paymentType==='card'){
   const low=s.cardRateMode==='confirmed278';
-  const rate=low?2.78:s.cardRateMode==='custom'?rateValue(s.customCardRate,3.2,100):3.2;
+  const rate=low?2.78:3.2;
   cardOrAto=Math.floor(a*rate/100*(low?1:1.1)+1e-9);
  }
  const stripe=s.paymentType==='card'?Math.floor(Math.max(0,a-platform-cardOrAto)*0.002*1.1+1e-9):0;
@@ -70,7 +71,7 @@ if(s.page==='fee'){
  ${field('amount',s.feeMode==='deduct'?'請求金額（税込・円）':'希望する手取り額（円）',amount,'min="0" step="1" placeholder="金額を入力"')}
  ${selectField('paymentType','支払い方法',s.paymentType,[['none','通常手数料のみ'],['card','オンラインカード決済'],['ato','後払い（ATO）']])}
  <p class="hint payment-explanation">${paymentNote}</p>
- ${cardPayment?`${selectField('cardRateMode','カード決済の料率',s.cardRateMode,[['estimate','3.2％（税抜）'],['confirmed278','2.78％（税込）'],['custom','任意の料率（税抜）']])}${s.cardRateMode==='custom'?field('customCardRate','カード手数料率（税抜・％）',s.customCardRate,'min="0" max="100" step="0.01"'):''}`:''}
+ ${cardPayment?selectField('cardRateMode','カード決済の料率',s.cardRateMode,[['estimate','3.2％（税抜）'],['confirmed278','2.78％（税込）']]):''}
  <div class="twocol">${field('rate','くらま手数料率（％）',s.feeRate,'min="0" max="90" step="0.1"')}${field('minimum','最低手数料（税抜・円）',s.minimum,'min="0" step="1"')}</div>
  <p class="hint">くらま手数料の初期値は20％、最低2,000円（税抜）。手数料に消費税10％を加算します。</p>
  <div class="tax-block"><h3>消費税の納税分（概算）</h3>
@@ -91,7 +92,6 @@ function attach(){document.querySelectorAll('[data-page]').forEach(b=>b.onclick=
  setRate('rate','feeRate',20,90);setYen('minimum','minimum');setRate('taxReservePct','taxReservePct',10);document.querySelectorAll('[data-tax]').forEach(b=>b.onclick=()=>{s.taxEnabled=b.dataset.tax==='yes';save();render()});
  bind('paymentType','change',e=>{s.paymentType=e.target.value;s.includePayout=false;save();render()});
  bind('cardRateMode','change',e=>{s.cardRateMode=e.target.value;save();render()});
- setRate('customCardRate','customCardRate',3.2);
  setRate('atoRate','atoRate',4.5);
  setYen('stripeConnectFee','stripeConnectFee');
  bind('payoutFee','change',e=>{s[s.paymentType==='card'?'cardPayoutFee':'atoPayoutFee']=safeInt(e.target.value);save();render()});
