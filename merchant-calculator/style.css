@@ -2,3 +2,32 @@
 
 /* 手取り計算機：決済費用・税確保の入力 */
 .check-row{display:flex;align-items:center;gap:12px;margin:16px 0 8px;line-height:1.5;font-weight:650;font-size:14px}.check-row input{width:22px;height:22px;min-height:22px;flex:none;accent-color:#4263a7}.statline.total{font-weight:800;font-size:16px;border-top:2px solid #b5c5dd;padding-top:16px;margin-top:10px}.statline b{text-align:right;white-space:nowrap}.card .note{margin:15px 0}.field select{background-color:white}
+
+/* 手取り計算機：以前のiPhone版に合わせたフォーム・結果カード */
+.fee-screen .card{border-radius:22px;border-color:#e1e5ee;padding:23px 20px;margin-bottom:20px;box-shadow:0 2px 9px #20293808}
+.fee-screen .card h2{font-size:19px;font-weight:750;margin:0 0 21px}
+.fee-screen .field{margin:19px 0 22px}
+.fee-screen .field span{font-size:14px;font-weight:650;line-height:1.5;color:#65748d;margin-bottom:10px}
+.fee-screen input:not([type=checkbox]),.fee-screen select{height:55px;min-height:55px;padding:12px 15px;border:1px solid #cbd2e0;border-radius:12px;background:white;font-size:18px;color:#242c3b}
+.fee-screen input::placeholder{color:#a8b3c6}
+.fee-screen .twocol{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
+.fee-screen .twocol .field span{font-size:13px}
+.fee-screen .switch{gap:9px;margin-bottom:20px}
+.fee-screen .switch button{min-height:52px;padding:12px 8px;font-size:15px;border-radius:11px;background:#eaf0fa;color:#4263a7}
+.fee-screen .switch button.active{background:#4263a7;color:#fff}
+.fee-screen .hint{font-size:13px;line-height:1.85;color:#748097;margin:14px 0}
+.fee-screen .payment-explanation{margin:5px 0 22px}
+.fee-screen .tax-block{margin-top:27px}
+.fee-screen .tax-block h3{font-size:15px;font-weight:700;color:#63728a;margin:0 0 17px}
+.fee-screen .tax-block .switch{margin-bottom:20px}
+.fee-screen .tax-block .field{margin:14px 0}
+.fee-screen .result{border-radius:14px;background:#eaf0fa;margin:10px 0 27px;padding:22px 12px;text-align:center}
+.fee-screen .result small{color:#687b96;font-size:14px;margin-bottom:12px}
+.fee-screen .result strong{font-size:clamp(29px,9vw,39px);line-height:1.35;overflow-wrap:normal}
+.fee-screen .statline{font-size:14px;line-height:1.6;padding:13px 0;border-bottom:1px solid #e8edf5}
+.fee-screen .statline span{min-width:0}
+.fee-screen .statline b{white-space:nowrap;text-align:right;font-weight:700}
+.fee-screen .statline.total{border-top:0;margin-top:0;padding-top:13px;font-size:15px}
+.fee-screen .result-card .hint{margin-top:23px}
+#feeResultCard[hidden]{display:none}
+@media(max-width:390px){.fee-screen .card{padding:20px 16px}.fee-screen .twocol{gap:10px}.fee-screen .switch button{font-size:13.5px}.fee-screen .field span{font-size:13.5px}.fee-screen .statline{font-size:13.5px}}
