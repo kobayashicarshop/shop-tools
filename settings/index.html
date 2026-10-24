@@ -20,20 +20,20 @@ a{color:#275da3}
 <button class="primary" id="saveProfile" type="button">設定を保存</button>
 <p class="notice">共通情報は新規書類への入力補助に使います。発行済みPDFを後から変更することはありません。</p></section>
 <section><h2>端末内データのバックアップ</h2>
-<p class="notice">計算機の記録、領収書の発行者テンプレート、共通設定、写真報告書の下書きをJSONで保存できます。写真が多い場合はファイルが大きくなります。バックアップには顧客名・写真・角印などの個人情報が含まれるため、安全な場所に保管してください。</p>
+<p class="notice">計算機の記録、領収書の発行元・テンプレート・PDF履歴、共通設定、写真報告書の下書きをJSONで保存できます。写真が多い場合はファイルが大きくなります。バックアップには顧客名・写真・角印などの個人情報が含まれるため、安全な場所に保管してください。</p>
 <div class="stack"><button type="button" id="export">すべて書き出す</button><label class="file-btn">バックアップを読み込む<input type="file" id="import" accept=".json,application/json"></label></div>
 <p class="notice">復元時は既存データが上書きされます。復元前にバックアップを保存してください。</p>
 </section>
 <section><h2>旧領収書アプリからの引き継ぎ</h2>
-<p class="notice">以前のサイトとは保存領域が異なるため、履歴や発行者情報は自動では移りません。旧アプリの「発行者・角印」からJSONを書き出し、統合後の領収書画面で読み込めます。</p>
-<p class="notice">現在の領収書作成機能は発行者テンプレートを保存します。発行済み領収書の一覧は未搭載なので、作成したPDFは別途保存してください。</p>
+<p class="notice">以前のサイトとは保存領域が異なるため、履歴や発行者情報は自動では移りません。旧アプリでバックアップを保存し、ファイルを保管してください。旧アプリ固有のバックアップ形式は移行前に確認が必要です。</p>
+<p class="notice">統合版には発行元・角印・テンプレート・履歴があり、統合版で発行したPDFはブラウザー内に保存されます。機種変更に備えてバックアップをご利用ください。</p>
 </section>
 <section><h2>データとプライバシー</h2>
 <p class="notice">会員登録なし・広告なし。入力情報を保存するためのサーバーは使用しません。端末やブラウザーを変えるとデータは引き継がれません。端末側の削除やストレージ制限で失われる場合があるため、定期的なバックアップをおすすめします。</p>
 <p class="notice"><a href="../">ホームへ戻る</a></p></section>
 <div class="status" id="status" role="status"></div>
 </main><script>
-(()=>{'use strict';const PROFILE='worktools_profile_v1',CALC='merchant_calcs_v1',RECEIPT='receipt_maker_issuer_templates_v1',PHOTO='before_after_tsukurukun_v1';
+(()=>{'use strict';const PROFILE='worktools_profile_v1',CALC='merchant_calcs_v1',RECEIPT='receipt_maker_issuer_templates_v1',PHOTO='before_after_tsukurukun_v1',R_DRAFT='receipt_unified_draft_v2',R_ISSUER='receipt_unified_issuer_v2',R_TEMP='receipt_unified_templates_v2',R_HISTORY='receipt_unified_history_v2',R_DB='receipt_unified_pdf_v2';
 const $=id=>document.getElementById(id);const keys=['business','staff','phone','address','registration'];
 const notice=(message,error=false)=>{const n=$('status');n.textContent=message;n.className='status visible';n.style.background=error?'#fff0e7':'#e9f3fc';n.scrollIntoView({block:'nearest',behavior:'smooth'})};
 try{const p=JSON.parse(localStorage.getItem(PROFILE)||'{}');for(const key of keys)$(key).value=typeof p[key]==='string'?p[key]:''}catch(_){}
@@ -42,21 +42,61 @@ function readPhoto(){return new Promise((resolve,reject)=>{const r=indexedDB.ope
 function putPhoto(value){return new Promise((resolve,reject)=>{const r=indexedDB.open(PHOTO,1);r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains('drafts'))r.result.createObjectStore('drafts')};r.onerror=()=>reject(r.error);r.onsuccess=()=>{const db=r.result;const tx=db.transaction('drafts','readwrite');tx.objectStore('drafts').put(value,'current');tx.oncomplete=()=>{db.close();resolve()};tx.onerror=()=>{db.close();reject(tx.error)}}})}
 const raw=key=>{try{return JSON.parse(localStorage.getItem(key)||'null')}catch(_){return null}};
 function download(blob,name){const a=document.createElement('a'),u=URL.createObjectURL(blob);a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),60000)}
+function readReceiptPdf(id){
+ return new Promise((resolve,reject)=>{
+  const r=indexedDB.open(R_DB,1);
+  r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains('files'))r.result.createObjectStore('files')};
+  r.onerror=()=>reject(r.error);
+  r.onsuccess=()=>{
+   const db=r.result,t=db.transaction('files','readonly'),q=t.objectStore('files').get(id);
+   q.onsuccess=()=>{const val=q.result||null;db.close();resolve(val)};
+   q.onerror=()=>{db.close();reject(q.error)}
+  }
+ })
+}
+function putReceiptPdf(id,blob){
+ return new Promise((resolve,reject)=>{
+  const r=indexedDB.open(R_DB,1);
+  r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains('files'))r.result.createObjectStore('files')};
+  r.onerror=()=>reject(r.error);
+  r.onsuccess=()=>{
+   const db=r.result,t=db.transaction('files','readwrite');
+   t.objectStore('files').put(blob,id);
+   t.oncomplete=()=>{db.close();resolve()};
+   t.onerror=()=>{db.close();reject(t.error)}
+  }
+ })
+}
+function asBase64(blob){return new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result).split(',')[1]);reader.onerror=()=>reject(reader.error);reader.readAsDataURL(blob)})}
+async function receiptPdfs(){
+ const out={},list=raw(R_HISTORY)||[];
+ for(const item of list){if(!item?.id)continue;const pdf=await readReceiptPdf(item.id);if(pdf)out[item.id]=await asBase64(pdf)}
+ return out
+}
+async function importReceiptPdfs(data){
+ for(const [id,encoded] of Object.entries(data||{})){
+  if(!/^[A-Za-z0-9+/=]+$/.test(encoded))throw Error('PDFのバックアップ形式が不正です');
+  const bin=atob(encoded),arr=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i);
+  await putReceiptPdf(id,new Blob([arr],{type:'application/pdf'}))
+ }
+}
 $('export').onclick=async()=>{const button=$('export');button.disabled=true;try{
- const payload={type:'worktools_backup',version:1,exportedAt:new Date().toISOString(),profile:raw(PROFILE),calculator:raw(CALC),receiptTemplates:raw(RECEIPT),photoDraft:await readPhoto()};
+ const payload={type:'worktools_backup',version:2,exportedAt:new Date().toISOString(),profile:raw(PROFILE),calculator:raw(CALC),receiptTemplates:raw(RECEIPT),receipt:{draft:raw(R_DRAFT),issuer:raw(R_ISSUER),templates:raw(R_TEMP),history:raw(R_HISTORY)},receiptPdfs:await receiptPdfs(),photoDraft:await readPhoto()};
  const blob=new Blob([JSON.stringify(payload)],{type:'application/json'});download(blob,'worktools_backup_'+new Date().toISOString().slice(0,10)+'.json');notice('バックアップを書き出しました（'+(blob.size/1048576).toFixed(1)+' MB）');
 }catch(e){notice('バックアップに失敗しました：'+e.message,true)}finally{button.disabled=false}};
 $('import').onchange=async e=>{const file=e.target.files?.[0];if(!file)return;try{
  if(file.size>100*1024*1024)throw Error('100MB以下のバックアップを選んでください');
  const p=JSON.parse(await file.text());
- if(p.type!=='worktools_backup'||p.version!==1)throw Error('このアプリのバックアップファイルではありません');
+ if(p.type!=='worktools_backup'||![1,2].includes(p.version))throw Error('このアプリのバックアップファイルではありません');
  if(!confirm('現在の保存データを上書きして復元しますか？'))return;
  const entries=[[PROFILE,p.profile],[CALC,p.calculator],[RECEIPT,p.receiptTemplates]];
+ if(p.version===2&&p.receipt){entries.push([R_DRAFT,p.receipt.draft],[R_ISSUER,p.receipt.issuer],[R_TEMP,p.receipt.templates],[R_HISTORY,p.receipt.history])}
  // Capture originals so a storage quota error does not silently erase earlier values.
  const previous=entries.map(([key])=>[key,localStorage.getItem(key)]);
  try{
   for(const [key,value] of entries)if(value!==undefined){if(value===null)localStorage.removeItem(key);else localStorage.setItem(key,JSON.stringify(value))}
   if(p.photoDraft)await putPhoto(p.photoDraft);
+  if(p.version===2)await importReceiptPdfs(p.receiptPdfs);
  }catch(error){for(const [key,value] of previous){try{if(value===null)localStorage.removeItem(key);else localStorage.setItem(key,value)}catch(_){}}throw error}
  notice('復元しました。各ツールを再度開いて確認してください。');
 }catch(error){notice('復元できませんでした：'+error.message,true)}finally{e.target.value=''}};
