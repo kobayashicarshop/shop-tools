@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - 'feature/unified-work-tools-*'
+      - 'feature/receipt-ui-parity-*'
   pull_request:
     paths:
       - 'index.html'
@@ -49,7 +50,7 @@ jobs:
                   with tempfile.NamedTemporaryFile(suffix='.js',mode='w',encoding='utf-8') as f:
                       f.write(script);f.flush()
                       subprocess.run(['node','--check',f.name],check=True)
-          for path in ['shared/shell.js','sw.js']:
+          for path in ['shared/shell.js','receipt/app.js','sw.js']:
               subprocess.run(['node','--check',path],check=True)
           print('All scripts parse')
           PY
