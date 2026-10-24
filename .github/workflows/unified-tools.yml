@@ -4,10 +4,12 @@ on:
     branches:
       - 'feature/unified-work-tools-*'
       - 'feature/receipt-ui-parity-*'
+      - 'feature/estimate-maker-*'
   pull_request:
     paths:
       - 'index.html'
       - 'receipt/**'
+      - 'estimate/**'
       - 'merchant-calculator/**'
       - 'before-after-tsukurukun/**'
       - 'shared/**'
@@ -44,13 +46,13 @@ jobs:
                   if self.active:self.current.append(data)
               def handle_endtag(self,t):
                   if t=='script' and self.active:self.parts.append(''.join(self.current));self.active=False
-          for html in ['index.html','receipt/index.html','merchant-calculator/index.html','before-after-tsukurukun/index.html','settings/index.html']:
+          for html in ['index.html','receipt/index.html','estimate/index.html','merchant-calculator/index.html','before-after-tsukurukun/index.html','settings/index.html']:
               p=Scripts();p.feed(Path(html).read_text('utf-8'))
               for i,script in enumerate(p.parts):
                   with tempfile.NamedTemporaryFile(suffix='.js',mode='w',encoding='utf-8') as f:
                       f.write(script);f.flush()
                       subprocess.run(['node','--check',f.name],check=True)
-          for path in ['shared/shell.js','receipt/app.js','sw.js']:
+          for path in ['shared/shell.js','receipt/app.js','estimate/app.js','sw.js']:
               subprocess.run(['node','--check',path],check=True)
           print('All scripts parse')
           PY

@@ -1,7 +1,7 @@
 {
   "name": "仕事の便利ツール",
   "short_name": "便利ツール",
-  "description": "領収書・手取り計算・写真報告をひとつに。登録不要・無料。",
+  "description": "領収書・見積書・手取り計算・写真報告をひとつに。登録不要・無料。",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

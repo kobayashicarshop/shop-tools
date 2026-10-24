@@ -10,7 +10,8 @@ const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQ
  page.on('pageerror',e=>errors.push(e.message));
  try{
   await page.goto(base+'/',{waitUntil:'load'});
-  assert.equal(await page.locator('nav.tool-nav a').count(),4);
+  assert.equal(await page.locator('nav.tool-nav a').count(),5);
+  assert.equal(await page.locator('a.tool[href="./estimate/"]').count(),1);
   await page.locator('a.tool[href="./receipt/"]').click();
   await page.waitForURL('**/receipt/');
 
@@ -86,6 +87,61 @@ const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQ
   assert.equal(await page.inputValue('#customerName'),'写真保存テスト','Photo draft should survive navigation');
   assert((await page.locator('img.photo').count())>=2,'Restored comparison images should remain visible');
 
+  // A quotation remains independent from the receipt editor and saves A4 portrait PDFs.
+  await page.goto(base+'/estimate/');
+  assert.equal(await page.locator('#s-home .big-btn').count(),3,'Quotation home has create, templates, history');
+  await page.locator('#s-home button[data-go="edit"]').click();
+  await page.fill('#recipient','見積テスト宛先');
+  await page.fill('#subject','機器取付見積もり');
+  await page.fill('#issuerText','テスト事業者');
+  await page.locator('.estimate-line').first().locator('[data-field="description"]').fill('取付工賃');
+  await page.locator('.estimate-line').first().locator('[data-field="quantity"]').fill('2');
+  await page.locator('.estimate-line').first().locator('[data-field="unitPrice"]').fill('10000');
+  await page.locator('#addItem').click();
+  await page.locator('.estimate-line').nth(1).locator('[data-field="description"]').fill('部品');
+  await page.locator('.estimate-line').nth(1).locator('[data-field="unitPrice"]').fill('5000');
+  await page.locator('.estimate-line').nth(1).locator('[data-field="rate"]').selectOption('8');
+  assert.equal((await page.locator('#liveTotal').innerText()).trim(),'¥27,400','10% and 8% group tax sums');
+  await page.locator('#create').click();
+  await page.locator('#s-preview.active').waitFor();
+  assert.equal(await page.locator('#previewPages canvas').count(),1);
+  const quoteDownloadPromise=page.waitForEvent('download');
+  await page.locator('#downloadPdf').click();
+  const quoteDownload=await quoteDownloadPromise;
+  const quotePdf=fs.readFileSync(await quoteDownload.path());
+  assert.equal(quotePdf.subarray(0,4).toString(),'%PDF');
+  assert(quotePdf.includes(Buffer.from('/MediaBox [0 0 595.28 841.89]')),'A4 portrait PDF');
+  await page.waitForFunction(()=>JSON.parse(localStorage.getItem('estimate_worktools_history_v1')||'[]').length>=1);
+  await page.locator('#back').click();await page.locator('#back').click();
+  await page.locator('#s-home button[data-go="history"]').click();
+  assert.equal(await page.locator('#historyList .item').count(),1,'Quotation saved to history');
+  await page.locator('#back').click();
+  await page.locator('#s-home button[data-go="edit"]').click();
+  assert.equal(await page.inputValue('#recipient'),'見積テスト宛先','Quotation draft survives navigation');
+  page.once('dialog',dialog=>dialog.accept('定番のお見積り'));
+  await page.locator('#saveTemplate').click();
+  await page.locator('#back').click();
+  await page.locator('#s-home button[data-go="templates"]').click();
+  assert.equal(await page.locator('#templateList .item').count(),1);
+  await page.locator('#back').click();
+  await page.locator('#s-home button[data-go="edit"]').click();
+  // Ten items per page; long quotations must remain multi-page rather than clipping.
+  for(let j=0;j<9;j++){
+    await page.locator('#addItem').click();
+    const item=page.locator('.estimate-line').last();
+    await item.locator('[data-field="description"]').fill('追加工事項目 '+(j+1));
+    await item.locator('[data-field="unitPrice"]').fill('1000');
+  }
+  await page.locator('#create').click();
+  await page.locator('#s-preview.active').waitFor();
+  assert.equal(await page.locator('#previewPages canvas').count(),2,'Long estimates must show two pages');
+  const multiDownload=page.waitForEvent('download');
+  await page.locator('#downloadPdf').click();
+  const secondFile=await multiDownload;
+  const secondPdf=fs.readFileSync(await secondFile.path());
+  assert(secondPdf.includes(Buffer.from('/Count 2')),'Multi-page quote PDF count');
+  await page.waitForFunction(()=>JSON.parse(localStorage.getItem('estimate_worktools_history_v1')||'[]').length>=2);
+
   await page.goto(base+'/settings/');
   await page.fill('#business','テスト事業者');
   await page.locator('#saveProfile').click();
@@ -94,14 +150,16 @@ const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQ
   await page.locator('#export').click();
   const backupFile=await backupDownload;
   const backup=JSON.parse(fs.readFileSync(await backupFile.path(),'utf8'));
-  assert.equal(backup.version,2,'Unified backup version 2');
+  assert.equal(backup.version,3,'Unified backup version 3');
   assert(backup.receipt.history.length>=1,'Receipt history must be included in unified backup');
   assert(Object.keys(backup.receiptPdfs).length>=1,'Actual receipt PDF blobs must be backed up');
+  assert(backup.estimate.history.length>=1,'Quotation history in unified backup');
+  assert(Object.keys(backup.estimatePdfs).length>=1,'Quote PDF binary in unified backup');
   await page.locator('nav.tool-nav a[data-tool-link="receipt"]').click();
   await page.waitForURL('**/receipt/');
   await page.locator('#s-home button[data-go="edit"]').click();
   assert.equal(await page.inputValue('#recipient'),'確認用テスト');
   assert.equal(errors.length,0,'JS runtime errors: '+errors.join('; '));
-  console.log('PASS: unified home, receipt PDF and draft, calculator, photo photo-draft, common navigation, settings');
+  console.log('PASS: unified home, receipt, estimates, taxes, portrait PDFs, history, photo-draft and backup');
  }finally{await browser.close()}
 })().catch(e=>{console.error(e);process.exit(1)});
