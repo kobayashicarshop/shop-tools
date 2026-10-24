@@ -20,7 +20,7 @@ a{color:#275da3}
 <button class="primary" id="saveProfile" type="button">設定を保存</button>
 <p class="notice">共通情報は新規書類への入力補助に使います。発行済みPDFを後から変更することはありません。</p></section>
 <section><h2>端末内データのバックアップ</h2>
-<p class="notice">計算機の記録、領収書の発行元・テンプレート・PDF履歴、共通設定、写真報告書の下書きをJSONで保存できます。写真が多い場合はファイルが大きくなります。バックアップには顧客名・写真・角印などの個人情報が含まれるため、安全な場所に保管してください。</p>
+<p class="notice">計算機の記録、領収書と見積書の履歴・PDF、共通設定、写真報告書の下書きをJSONで保存できます。写真が多い場合はファイルが大きくなります。バックアップには顧客名・写真・角印などの個人情報が含まれるため、安全な場所に保管してください。</p>
 <div class="stack"><button type="button" id="export">すべて書き出す</button><label class="file-btn">バックアップを読み込む<input type="file" id="import" accept=".json,application/json"></label></div>
 <p class="notice">復元時は既存データが上書きされます。復元前にバックアップを保存してください。</p>
 </section>
@@ -33,7 +33,7 @@ a{color:#275da3}
 <p class="notice"><a href="../">ホームへ戻る</a></p></section>
 <div class="status" id="status" role="status"></div>
 </main><script>
-(()=>{'use strict';const PROFILE='worktools_profile_v1',CALC='merchant_calcs_v1',RECEIPT='receipt_maker_issuer_templates_v1',PHOTO='before_after_tsukurukun_v1',R_DRAFT='receipt_unified_draft_v2',R_ISSUER='receipt_unified_issuer_v2',R_TEMP='receipt_unified_templates_v2',R_HISTORY='receipt_unified_history_v2',R_DB='receipt_unified_pdf_v2';
+(()=>{'use strict';const PROFILE='worktools_profile_v1',CALC='merchant_calcs_v1',RECEIPT='receipt_maker_issuer_templates_v1',PHOTO='before_after_tsukurukun_v1',R_DRAFT='receipt_unified_draft_v2',R_ISSUER='receipt_unified_issuer_v2',R_TEMP='receipt_unified_templates_v2',R_HISTORY='receipt_unified_history_v2',R_DB='receipt_unified_pdf_v2',E_DRAFT='estimate_worktools_draft_v1',E_TEMPLATES='estimate_worktools_templates_v1',E_HISTORY='estimate_worktools_history_v1',E_DB='estimate_worktools_pdfs_v1';
 const $=id=>document.getElementById(id);const keys=['business','staff','phone','address','registration'];
 const notice=(message,error=false)=>{const n=$('status');n.textContent=message;n.className='status visible';n.style.background=error?'#fff0e7':'#e9f3fc';n.scrollIntoView({block:'nearest',behavior:'smooth'})};
 try{const p=JSON.parse(localStorage.getItem(PROFILE)||'{}');for(const key of keys)$(key).value=typeof p[key]==='string'?p[key]:''}catch(_){}
@@ -80,23 +80,52 @@ async function importReceiptPdfs(data){
   await putReceiptPdf(id,new Blob([arr],{type:'application/pdf'}))
  }
 }
+function estimateFile(id,value){
+ return new Promise((resolve,reject)=>{
+  const r=indexedDB.open(E_DB,1);
+  r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains('files'))r.result.createObjectStore('files')};
+  r.onerror=()=>reject(r.error);
+  r.onsuccess=()=>{
+   const db=r.result,tx=db.transaction('files',value===undefined?'readonly':'readwrite'),store=tx.objectStore('files');
+   const q=value===undefined?store.get(id):store.put(value,id);
+   q.onsuccess=()=>{if(value===undefined){db.close();resolve(q.result||null)}};
+   tx.oncomplete=()=>{if(value!==undefined){db.close();resolve()}};
+   q.onerror=()=>{db.close();reject(q.error)}
+  }
+ })
+}
+async function estimatePdfs(){
+ const output={};
+ for(const h of raw(E_HISTORY)||[]){if(!h?.id)continue;const pdf=await estimateFile(h.id);if(pdf)output[h.id]=await asBase64(pdf)}
+ return output
+}
+async function importEstimatePdfs(pdfs){
+ for(const [id,encoded] of Object.entries(pdfs||{})){
+  if(!/^[A-Za-z0-9+/=]+$/.test(encoded))throw Error('見積書PDFのバックアップ形式が不正です');
+  const binary=atob(encoded),bytes=new Uint8Array(binary.length);
+  for(let i=0;i<binary.length;i++)bytes[i]=binary.charCodeAt(i);
+  await estimateFile(id,new Blob([bytes],{type:'application/pdf'}))
+ }
+}
 $('export').onclick=async()=>{const button=$('export');button.disabled=true;try{
- const payload={type:'worktools_backup',version:2,exportedAt:new Date().toISOString(),profile:raw(PROFILE),calculator:raw(CALC),receiptTemplates:raw(RECEIPT),receipt:{draft:raw(R_DRAFT),issuer:raw(R_ISSUER),templates:raw(R_TEMP),history:raw(R_HISTORY)},receiptPdfs:await receiptPdfs(),photoDraft:await readPhoto()};
+ const payload={type:'worktools_backup',version:3,exportedAt:new Date().toISOString(),profile:raw(PROFILE),calculator:raw(CALC),receiptTemplates:raw(RECEIPT),receipt:{draft:raw(R_DRAFT),issuer:raw(R_ISSUER),templates:raw(R_TEMP),history:raw(R_HISTORY)},receiptPdfs:await receiptPdfs(),estimate:{draft:raw(E_DRAFT),templates:raw(E_TEMPLATES),history:raw(E_HISTORY)},estimatePdfs:await estimatePdfs(),photoDraft:await readPhoto()};
  const blob=new Blob([JSON.stringify(payload)],{type:'application/json'});download(blob,'worktools_backup_'+new Date().toISOString().slice(0,10)+'.json');notice('バックアップを書き出しました（'+(blob.size/1048576).toFixed(1)+' MB）');
 }catch(e){notice('バックアップに失敗しました：'+e.message,true)}finally{button.disabled=false}};
 $('import').onchange=async e=>{const file=e.target.files?.[0];if(!file)return;try{
  if(file.size>100*1024*1024)throw Error('100MB以下のバックアップを選んでください');
  const p=JSON.parse(await file.text());
- if(p.type!=='worktools_backup'||![1,2].includes(p.version))throw Error('このアプリのバックアップファイルではありません');
+ if(p.type!=='worktools_backup'||![1,2,3].includes(p.version))throw Error('このアプリのバックアップファイルではありません');
  if(!confirm('現在の保存データを上書きして復元しますか？'))return;
  const entries=[[PROFILE,p.profile],[CALC,p.calculator],[RECEIPT,p.receiptTemplates]];
- if(p.version===2&&p.receipt){entries.push([R_DRAFT,p.receipt.draft],[R_ISSUER,p.receipt.issuer],[R_TEMP,p.receipt.templates],[R_HISTORY,p.receipt.history])}
+ if(p.version>=2&&p.receipt){entries.push([R_DRAFT,p.receipt.draft],[R_ISSUER,p.receipt.issuer],[R_TEMP,p.receipt.templates],[R_HISTORY,p.receipt.history])}
+ if(p.version>=3&&p.estimate)entries.push([E_DRAFT,p.estimate.draft],[E_TEMPLATES,p.estimate.templates],[E_HISTORY,p.estimate.history]);
  // Capture originals so a storage quota error does not silently erase earlier values.
  const previous=entries.map(([key])=>[key,localStorage.getItem(key)]);
  try{
   for(const [key,value] of entries)if(value!==undefined){if(value===null)localStorage.removeItem(key);else localStorage.setItem(key,JSON.stringify(value))}
   if(p.photoDraft)await putPhoto(p.photoDraft);
-  if(p.version===2)await importReceiptPdfs(p.receiptPdfs);
+  if(p.version>=2)await importReceiptPdfs(p.receiptPdfs);
+  if(p.version>=3)await importEstimatePdfs(p.estimatePdfs);
  }catch(error){for(const [key,value] of previous){try{if(value===null)localStorage.removeItem(key);else localStorage.setItem(key,value)}catch(_){}}throw error}
  notice('復元しました。各ツールを再度開いて確認してください。');
 }catch(error){notice('復元できませんでした：'+error.message,true)}finally{e.target.value=''}};
