@@ -157,8 +157,11 @@ const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQ
   assert.equal(await page.locator('#templateList .item').count(),1);
   await page.locator('#back').click();
   await page.locator('#s-home button[data-go="edit"]').click();
-  // Ten items per page; long quotations must remain multi-page rather than clipping.
-  for(let j=0;j<9;j++){
+  // After a new quote, refill its cleared first row before testing pagination.
+  await page.locator('.estimate-line').first().locator('[data-field="description"]').fill('基礎作業');
+  await page.locator('.estimate-line').first().locator('[data-field="unitPrice"]').fill('1000');
+  // Ten items per page; 11 line items must remain multi-page rather than clipping.
+  for(let j=0;j<10;j++){
     await page.locator('#addItem').click();
     const item=page.locator('.estimate-line').last();
     await item.locator('[data-field="description"]').fill('追加工事項目 '+(j+1));
