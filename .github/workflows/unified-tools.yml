@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - 'feature/unified-work-tools-*'
+      - 'feature/receipt-ui-parity-*'
   pull_request:
     paths:
       - 'index.html'
