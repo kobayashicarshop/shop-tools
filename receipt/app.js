@@ -29,7 +29,7 @@ root.innerHTML=[
 '<p class="helper" id="taxHelp">内税：税込の金額を入力してください。</p></div>',
 '<div class="field"><label for="amount">金額</label><input class="input" id="amount" type="text" inputmode="numeric" autocomplete="off" placeholder="10,000"></div>',
 '<div class="field"><label for="purpose">但し書き</label><input class="input" id="purpose" maxlength="150" placeholder="〇〇代として"></div>',
-'<div class="field"><label for="payment">支払方法</label><select class="select" id="payment"><option value="">記載しない</option><option>現金</option><option>銀行振込</option><option>クレジットカード</option><option>オンライン決済</option><option>その他</option></select></div>',
+'<div class="field"><label for="payment">支払方法</label><select class="select" id="payment"><option value="">記載しない</option><option>クレジットカード</option><option>銀行振込</option><option>現金</option><option>オンラインカード決済</option><option>後払い</option></select></div>',
 '<div class="field"><div class="inline between" style="margin-bottom:10px"><label for="issuerText" style="font-size:17px;font-weight:740">発行元</label><button class="action-btn compact" id="saveIssuer" type="button">発行元・角印を保存</button></div>',
 '<textarea class="textarea" id="issuerText" placeholder="事業者名&#10;住所&#10;電話番号"></textarea>',
 '<p class="helper">発行元は保存ボタン、または領収書の「作成」で次回用に保存します。</p>',
@@ -60,7 +60,7 @@ root.innerHTML=[
 '<p class="smallnote" style="margin:8px 0 0">作成後に完成イメージを確認して、PDFを保存できます。</p>',
 '</div></section>',
 '<section id="s-preview" class="screen"><div class="container edit"><p class="helper" style="text-align:center">完成イメージ　A4横・PDF</p>',
-'<div class="preview-paper"><canvas id="pdfCanvas" width="1654" height="1169" aria-label="領収書プレビュー"></canvas></div>',
+'<div class="preview-paper"><canvas id="pdfCanvas" width="2339" height="1654" aria-label="領収書プレビュー"></canvas></div>',
 '<button class="action-btn primary" id="downloadPdf" type="button">PDFを保存</button>',
 '<button class="action-btn" id="sharePdf" type="button">PDFを共有</button>',
 '<button class="action-btn outline" data-go="edit" type="button">入力内容を修正</button>',
@@ -81,6 +81,7 @@ root.innerHTML=[
 const ids=['issueDate','showNumber','receiptNo','recipient','suffix','amount','purpose','payment','issuerText','stampSize','removeWhite','revenueStamp','showTaxDetail','roundMode','notes','mixed','gross10','gross8','grossNone','invoice','registration'];
 const checkboxes=new Set(['showNumber','removeWhite','revenueStamp','showTaxDetail','mixed','invoice']);
 function populate(){
+ if(state.payment==='オンライン決済')state.payment='オンラインカード決済';
  for(const id of ids){const el=$(id);if(!el)continue;if(checkboxes.has(id))el.checked=!!state[id];else el.value=state[id]??''}
  for(const group of ['rate','taxMode']){const el=document.querySelector('input[name="'+group+'"][value="'+state[group]+'"]');if(el)el.checked=true}
  updateOptions();updateStamp();
@@ -174,36 +175,97 @@ function wrap(ctx,str,x,y,maxWidth,lineH,maxLines=3){
  if(line&&lines<maxLines){ctx.fillText(line,x,y);y+=lineH}return y;
 }
 async function draw(data){
- const canvas=$('pdfCanvas'),ctx=canvas.getContext('2d'),w=canvas.width,h=canvas.height,T=totals(data);
- ctx.clearRect(0,0,w,h);ctx.fillStyle='#fff';ctx.fillRect(0,0,w,h);
- ctx.strokeStyle='#233346';ctx.lineWidth=3;ctx.strokeRect(64,60,w-128,h-120);
- ctx.fillStyle='#192638';ctx.textBaseline='alphabetic';ctx.textAlign='center';
- ctx.font='bold 68px "Hiragino Sans","Yu Gothic",sans-serif';ctx.fillText('領 収 書',w/2,175);
- ctx.textAlign='right';ctx.font='29px "Hiragino Sans",sans-serif';ctx.fillText(data.issueDate.replaceAll('-','/') ,w-116,240);
- if(data.showNumber&&data.receiptNo)ctx.fillText('No. '+data.receiptNo,w-116,282);
- ctx.textAlign='left';ctx.font='bold 43px "Hiragino Sans",sans-serif';ctx.fillText(data.recipient+' '+(data.suffix==='なし'?'':data.suffix),118,326);
- ctx.strokeStyle='#aab7c8';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(110,349);ctx.lineTo(w-108,349);ctx.stroke();
- ctx.font='bold 30px "Hiragino Sans",sans-serif';ctx.fillText('金 額',145,455);
- ctx.textAlign='center';ctx.font='bold 73px "Hiragino Sans",sans-serif';ctx.fillText(yen(T.total)+' -',w/2+56,470);
- ctx.strokeStyle='#162a44';ctx.strokeRect(120,391,w-240,124);
- ctx.textAlign='left';ctx.font='27px "Hiragino Sans",sans-serif';
- wrap(ctx,'但し　'+data.purpose,135,581,w-275,42,2);
- ctx.font='24px "Hiragino Sans",sans-serif';
- if(data.payment)ctx.fillText('お支払方法：'+data.payment,135,670);
+ const canvas=$('pdfCanvas'),ctx=canvas.getContext('2d');
+ const w=1654,h=1169,T=totals(data);
+ ctx.setTransform(canvas.width/w,0,0,canvas.height/h,0,0);
+ const mincho='"Hiragino Mincho ProN","Yu Mincho","Noto Serif CJK JP",serif';
+ const gothic='"Hiragino Sans","Yu Gothic","Noto Sans CJK JP",sans-serif';
+ const ink='#111111';
+ ctx.clearRect(0,0,w,h);
+ ctx.fillStyle='#ffffff';ctx.fillRect(0,0,w,h);
+ ctx.textBaseline='alphabetic';ctx.fillStyle=ink;ctx.strokeStyle=ink;
+ const write=(value,x,y,size,{bold=false,align='left',family=mincho,maxWidth}={})=>{
+  ctx.font=(bold?'bold ':'')+size+'px '+family;
+  ctx.textAlign=align;ctx.fillStyle=ink;
+  if(maxWidth)ctx.fillText(String(value),x,y,maxWidth);else ctx.fillText(String(value),x,y);
+ };
+ const stroke=(x0,y0,x1,y1,width=1.7)=>{
+  ctx.strokeStyle='#191919';ctx.lineWidth=width;ctx.beginPath();ctx.moveTo(x0,y0);ctx.lineTo(x1,y1);ctx.stroke();
+ };
+ // A4 landscape, no surrounding border. Layout follows the supplied finished receipt.
+ write('領　収　書',w/2,168,58,{bold:true,align:'center'});
+ stroke(115,216,w-115,216,1.8);
+
+ const dateParts=String(data.issueDate||'').split('-');
+ const issueDate=dateParts.length===3?'発行日: '+dateParts[0]+'年'+Number(dateParts[1])+'月'+Number(dateParts[2])+'日':'発行日: '+(data.issueDate||'');
+ write(issueDate,w-82,300,33,{align:'right'});
+ if(data.showNumber&&data.receiptNo)write('No. '+data.receiptNo,w-82,357,28,{align:'right'});
+
+ const recipient=String(data.recipient||'')+(data.suffix==='なし'?'':'　'+(data.suffix||'様'));
+ write(recipient,158,308,39,{maxWidth:760});
+ ctx.font='39px '+mincho;
+ const recipientWidth=Math.min(760,ctx.measureText(recipient).width);
+ stroke(156,334,156+Math.max(225,recipientWidth+12),334,1.5);
+
+ // The receipt total is always the amount actually received, including tax.
+ const amountText='¥ '+T.total.toLocaleString('ja-JP');
+ ctx.font='bold 80px '+mincho;
+ const amountWidth=ctx.measureText(amountText).width;
+ const amountLeft=(w-amountWidth)/2;
+ write(amountText,w/2,515,80,{bold:true,align:'center'});
+ write(Number(data.rate)===0&&!data.mixed?'（非課税）':'（税込）',amountLeft+amountWidth+20,504,24,{maxWidth:150});
+ stroke(amountLeft-12,543,amountLeft+amountWidth+12,543,2);
+
+ // Description and settlement confirmation: lower-left column.
+ const left=434,leftWidth=605;
+ write('但し　'+data.purpose,left,670,31,{maxWidth:leftWidth});
+ write('上記正に領収いたしました。',left,733,31);
  if(data.showTaxDetail){
-  ctx.fillText('税抜金額　'+yen(T.base)+'　　消費税　'+yen(T.tax),135,725);
-  if(data.mixed){ctx.font='21px "Hiragino Sans",sans-serif';T.lines.forEach((line,i)=>ctx.fillText(line,135,760+i*31))}
- }else if(data.rate==='none')ctx.fillText('非課税',135,725);
- if(data.invoice)ctx.fillText('登録番号：'+data.registration.toUpperCase(),135,860);
- if(data.notes)wrap(ctx,'備考：'+data.notes,135,914,w-620,30,3);
- ctx.strokeStyle='#d6dee7';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(115,990);ctx.lineTo(w-110,990);ctx.stroke();
- ctx.font='25px "Hiragino Sans",sans-serif';
- const lines=data.issuerText.split(/\n/).slice(0,6).map(v=>v.trim()).filter(Boolean);
- const startY=1038-Math.max(0,lines.length-3)*24;
- lines.forEach((line,i)=>{let size=25;while(size>17){ctx.font=size+'px "Hiragino Sans",sans-serif';if(ctx.measureText(line).width<660)break;size-=1}ctx.fillText(line,135,startY+i*32)});
- if(data.revenueStamp){ctx.strokeStyle='#737f90';ctx.strokeRect(w-420,660,205,180);ctx.font='21px "Hiragino Sans",sans-serif';ctx.fillText('収入印紙',w-393,704)}
+  if(data.mixed){
+   write('税抜金額',left,808,28);
+   write(yen(T.base),730,808,28);
+   const taxLines=String(T.lines||'');
+   const lines=Array.isArray(T.lines)?T.lines:[];
+   lines.slice(0,3).forEach((line,i)=>write(line,left,859+36*i,25,{maxWidth:670}));
+  }else if(Number(data.rate)===0){
+   write('非課税',left,808,28);
+  }else{
+   write('税抜金額',left,808,29);
+   write(yen(T.base),725,808,29);
+   write(data.rate+'% 消費税',left,864,29);
+   write(yen(T.tax),725,864,29);
+  }
+ }
+ if(data.payment)write('支払方法: '+(data.payment==='オンライン決済'?'オンラインカード決済':data.payment),left,data.mixed?986:929,24,{maxWidth:670});
+ if(data.notes)wrap(ctx,'備考: '+data.notes,left,data.mixed?1080:1011,635,32,2);
+
+ // Issuer and seal sit at the lower right of the document, without a horizontal rule.
+ const issuerLines=String(data.issuerText||'').split(/\n/).map(v=>v.trim()).filter(Boolean).slice(0,6);
+ const issuerX=1100,issuerY=900;
+ const issuerLineHeight=47;
+ issuerLines.forEach((line,i)=>{
+  const baseY=issuerY+i*issuerLineHeight;
+  if(baseY>1118)return;
+  let size=31;
+  ctx.font=size+'px '+mincho;
+  while(size>20&&ctx.measureText(line).width>350){size--;ctx.font=size+'px '+mincho}
+  write(line,issuerX,baseY,size,{maxWidth:350});
+ });
+ if(data.invoice){
+  write('登録番号: '+data.registration.toUpperCase(),issuerX,Math.min(1132,issuerY+issuerLines.length*issuerLineHeight+5),20,{maxWidth:425});
+ }
+ if(data.revenueStamp){
+  ctx.strokeStyle='#222';ctx.lineWidth=1.3;
+  ctx.strokeRect(1360,570,177,147);
+  write('収入印紙',1448,622,25,{align:'center'});
+ }
  const stamp=await loadImage(data.stampData);
- if(stamp){const size=Math.round((Number(data.stampSize)||30)*3.65);ctx.drawImage(stamp,w-320,865,size,size)}
+ if(stamp){
+  const size=Math.round((Number(data.stampSize)||30)*3.65);
+  // Prefer the space to the right of the issuer, as in the reference receipt.
+  const x=Math.min(w-size-97,1443),y=Math.min(h-size-60,924);
+  ctx.drawImage(stamp,x,y,size,size);
+ }
  return canvas;
 }
 function pdfBytes(canvas){
@@ -216,7 +278,7 @@ function pdfBytes(canvas){
  obj(1,'<< /Type /Catalog /Pages 2 0 R >>');
  obj(2,'<< /Type /Pages /Kids [3 0 R] /Count 1 >>');
  obj(3,'<< /Type /Page /Parent 2 0 R /MediaBox [0 0 841.89 595.28] /Resources << /XObject << /Img 4 0 R >> >> /Contents 5 0 R >>');
- offsets[4]=pos;append('4 0 obj\n<< /Type /XObject /Subtype /Image /Width 1654 /Height 1169 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length '+jpeg.byteLength+' >>\nstream\n');
+ offsets[4]=pos;append('4 0 obj\n<< /Type /XObject /Subtype /Image /Width '+canvas.width+' /Height '+canvas.height+' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length '+jpeg.byteLength+' >>\nstream\n');
  append(jpeg);append('\nendstream\nendobj\n');
  const stream='q\n841.89 0 0 595.28 0 0 cm\n/Img Do\nQ\n';
  obj(5,'<< /Length '+enc.encode(stream).byteLength+' >>\nstream\n'+stream+'endstream');
