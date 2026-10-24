@@ -3,10 +3,11 @@ const base=new URL('../',document.currentScript.src);
 const defs=[
 {path:'',label:'ホーム',name:'home',shape:'<path d="m3 10 9-7 9 7"/><path d="M5 9v12h14V9"/><path d="M9 21v-7h6v7"/>'},
 {path:'receipt/',label:'領収書',name:'receipt',shape:'<path d="M4 3h16v18l-4-2-4 2-4-2-4 2z"/><path d="M8 8h8M8 12h8"/>'},
+{path:'estimate/',label:'見積書',name:'estimate',shape:'<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/>'},
 {path:'merchant-calculator/',label:'計算機',name:'calc',shape:'<rect x="5" y="2" width="14" height="20" rx="2"/><path d="M8 7h8M8 12h2M14 12h2M8 16h2M14 16h2"/>'},
 {path:'before-after-tsukurukun/',label:'写真報告',name:'photo',shape:'<rect x="3" y="3" width="18" height="18" rx="2"/><path d="m3 16 5-5 4 4 3-3 6 6"/><circle cx="16" cy="8" r="1"/>'}];
 const url=new URL(location.href), rel=url.pathname.startsWith(base.pathname)?url.pathname.slice(base.pathname.length):'';
-const current=rel.startsWith('receipt/')?'receipt':rel.startsWith('merchant-calculator/')?'calc':rel.startsWith('before-after-tsukurukun/')?'photo':'home';
+const current=rel.startsWith('receipt/')?'receipt':rel.startsWith('estimate/')?'estimate':rel.startsWith('merchant-calculator/')?'calc':rel.startsWith('before-after-tsukurukun/')?'photo':'home';
 if(!document.querySelector('.tool-nav')){
  const nav=document.createElement('nav');nav.className='tool-nav';nav.setAttribute('aria-label','共通メニュー');
  nav.innerHTML=defs.map(o=>'<a data-tool-link="'+o.name+'" href="'+new URL(o.path,base)+'" '+(current===o.name?'aria-current="page"':'')+'><svg viewBox="0 0 24 24" aria-hidden="true">'+o.shape+'</svg><span>'+o.label+'</span></a>').join('');
