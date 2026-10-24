@@ -73,6 +73,7 @@ function renderItems(){
 function calcLine(l){const q=Number(l.quantity),p=Number(l.unitPrice);return Number.isFinite(q)&&Number.isFinite(p)&&q>0&&p>=0?Math.round(q*p):0}
 function updateTotal(){
  const c=calc();$('liveTotal').textContent=yen(c.total);
+ $('liveTotalLabel').textContent=state.showTaxDetails?'見積合計（税込）':'見積合計';
  for(const element of $('items').querySelectorAll('.estimate-line')){
   const index=Number(element.dataset.index),sum=element.querySelector('.line-sum');
   sum.textContent='金額：'+yen(calcLine(state.items[index]));
@@ -86,6 +87,7 @@ for(const id of basic){
    taxDisplayPreference=state.showTaxDetails;
    try{save(TAX_DISPLAY,taxDisplayPreference)}catch(error){console.error(error);note('設定を保存できませんでした')}
   }
+  if(id==='showTaxDetails')updateTotal();
   persist();
  });
 }
