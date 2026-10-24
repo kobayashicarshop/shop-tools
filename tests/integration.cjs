@@ -157,6 +157,8 @@ const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQ
   assert.equal(await page.locator('#templateList .item').count(),1);
   await page.locator('#back').click();
   await page.locator('#s-home button[data-go="edit"]').click();
+  await page.fill('#recipient','複数ページ見積テスト');
+  await page.fill('#issuerText','テスト事業者');
   // After a new quote, refill its cleared first row before testing pagination.
   await page.locator('.estimate-line').first().locator('[data-field="description"]').fill('基礎作業');
   await page.locator('.estimate-line').first().locator('[data-field="unitPrice"]').fill('1000');
