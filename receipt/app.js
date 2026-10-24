@@ -62,11 +62,10 @@ root.innerHTML=[
 '<section id="s-preview" class="screen"><div class="container edit"><p class="helper" style="text-align:center">完成イメージ　A4横・PDF</p>',
 '<div class="preview-paper"><canvas id="pdfCanvas" width="2339" height="1654" aria-label="領収書プレビュー"></canvas></div>',
 '<button class="action-btn primary" id="downloadPdf" type="button">PDFを保存</button>',
-'<button class="action-btn" id="sharePdf" type="button">PDFを共有</button>',
 '<button class="action-btn outline" data-go="edit" type="button">入力内容を修正</button>',
-'<p class="smallnote">PDFの保存・共有時に履歴へ保存します。<br>保存先は端末の操作画面で選べます。</p></div></section>',
+'<p class="smallnote">PDFの保存時に履歴へ保存します。<br>保存先は端末の操作画面で選べます。</p></div></section>',
 '<section id="s-templates" class="screen"><div class="container edit"><p class="helper">保存した内容を読み込み、日付と宛名を変えて作成できます。</p><div id="templateList"></div></div></section>',
-'<section id="s-history" class="screen"><div class="container edit"><p class="helper">保存・共有した領収書を、この端末で確認できます。履歴は最大50件です。</p><div id="historyList"></div></div></section>',
+'<section id="s-history" class="screen"><div class="container edit"><p class="helper">保存した領収書を、この端末で確認できます。履歴は最大50件です。</p><div id="historyList"></div></div></section>',
 '<section id="s-settings" class="screen"><div class="container edit settings"><h2>設定・バックアップ</h2>',
 '<p class="helper">発行元・角印・テンプレート・履歴は、この端末のブラウザに保存されます。機種変更時は旧端末から書き出して、新端末で読み込んでください。</p>',
 '<button class="action-btn primary" id="exportAll" type="button">保存データを書き出す</button>',
@@ -308,15 +307,21 @@ async function storeHistory(blob,data){
   for(const item of dropped)await removePdf(item.id);
  }catch(error){toast('PDFは作成しましたが、履歴の保存に失敗しました');console.error(error)}
 }
-async function produce(share){
- if(busy)return;busy=true;$('downloadPdf').disabled=$('sharePdf').disabled=true;
+async function produce(){
+ if(busy)return;
+ busy=true;$('downloadPdf').disabled=true;
  try{
   const d=previewSource||{...state},canvas=await draw(d),pdf=pdfBytes(canvas),name=filename(d);
-  if(share&&navigator.canShare&&navigator.share){const file=new File([pdf],name,{type:'application/pdf'});if(navigator.canShare({files:[file]})){try{await navigator.share({files:[file],title:'領収書PDF'});await storeHistory(pdf,d);toast('PDFを共有しました');return}catch(error){if(error.name==='AbortError')return}}}
-  download(pdf,name);await storeHistory(pdf,d);toast('PDFを作成しました。履歴に保存しました');
- }catch(error){console.error(error);toast('PDFを作成できませんでした')}finally{busy=false;$('downloadPdf').disabled=$('sharePdf').disabled=false}
+  download(pdf,name);
+  await storeHistory(pdf,d);
+  toast('PDFを作成しました。履歴に保存しました');
+ }catch(error){
+  console.error(error);toast('PDFを作成できませんでした');
+ }finally{
+  busy=false;$('downloadPdf').disabled=false;
+ }
 }
-$('downloadPdf').onclick=()=>produce(false);$('sharePdf').onclick=()=>produce(true);
+$('downloadPdf').onclick=produce;
 $('saveTemplate').onclick=()=>{
  gather();const name=prompt('テンプレートの名前を入力してください');
  if(!name)return;if(templates.length>=40){toast('テンプレートは40件までです');return}
@@ -328,7 +333,7 @@ function renderTemplates(){
  $('templateList').innerHTML=templates.length?templates.map(t=>'<div class="item"><div class="meta"><strong>'+escape(t.name)+'</strong><small>'+escape(t.data?.purpose||'')+'</small></div><button data-load-template="'+escape(t.id)+'">読み込む</button><button data-delete-template="'+escape(t.id)+'">削除</button></div>').join(''):'<p class="empty">保存したテンプレートはありません。<br>入力画面から保存できます。</p>';
 }
 function renderHistory(){
- $('historyList').innerHTML=history.length?history.map(h=>'<div class="item"><div class="meta"><strong>'+escape(h.recipient)+'　'+yen(h.amount)+'</strong><small>'+escape(h.issueDate)+'　'+new Date(h.createdAt).toLocaleString('ja-JP')+'</small></div><button data-open-history="'+escape(h.id)+'">PDF</button><button data-reuse-history="'+escape(h.id)+'">再作成</button><button data-delete-history="'+escape(h.id)+'">削除</button></div>').join(''):'<p class="empty">保存した履歴はありません。<br>PDFの保存・共有時に履歴へ追加されます。</p>';
+ $('historyList').innerHTML=history.length?history.map(h=>'<div class="item"><div class="meta"><strong>'+escape(h.recipient)+'　'+yen(h.amount)+'</strong><small>'+escape(h.issueDate)+'　'+new Date(h.createdAt).toLocaleString('ja-JP')+'</small></div><button data-open-history="'+escape(h.id)+'">PDF</button><button data-reuse-history="'+escape(h.id)+'">再作成</button><button data-delete-history="'+escape(h.id)+'">削除</button></div>').join(''):'<p class="empty">保存した履歴はありません。<br>PDFの保存時に履歴へ追加されます。</p>';
 }
 root.addEventListener('click',async e=>{
  const b=e.target.closest('[data-load-template],[data-delete-template],[data-open-history],[data-reuse-history],[data-delete-history]');if(!b)return;
