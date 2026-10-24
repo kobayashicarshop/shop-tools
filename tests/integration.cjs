@@ -32,9 +32,10 @@ const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQ
   await page.locator('#s-preview.active').waitFor();
   assert((await page.locator('#pdfCanvas').evaluate(c=>c.width))>1500);
   const printLayout=await page.locator('#pdfCanvas').evaluate(c=>{
-    const ctx=c.getContext('2d'),p=(x,y)=>Array.from(ctx.getImageData(x,y,1,1).data).slice(0,3);
-    return {paperEdge:p(64,60),headerRule:p(400,228),outsideFrame:p(64,570)};
+    const ctx=c.getContext('2d'),k=c.width/1654,p=(x,y)=>Array.from(ctx.getImageData(Math.round(x*k),Math.round(y*k),1,1).data).slice(0,3);
+    return {paperEdge:p(64,60),headerRule:p(400,216),outsideFrame:p(64,570),size:[c.width,c.height]};
   });
+  assert.deepEqual(printLayout.size,[2339,1654],'Match reference image resolution');
   assert(printLayout.paperEdge.every(v=>v>245),'Reference receipt uses a clean white paper without a frame');
   assert(printLayout.headerRule.every(v=>v<100),'Reference receipt has a thin horizontal rule under the title');
   assert(printLayout.outsideFrame.every(v=>v>245),'No enclosing border must be drawn around the receipt');
@@ -45,6 +46,7 @@ const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQ
   assert(download.suggestedFilename().endsWith('.pdf'));
   const pdfBytes=fs.readFileSync(await download.path());
   assert.equal(pdfBytes.subarray(0,4).toString(),'%PDF');
+  assert(pdfBytes.includes(Buffer.from('/Width 2339 /Height 1654')),'Match reference PDF raster resolution');
   assert(pdfBytes.includes(Buffer.from('/MediaBox [0 0 841.89 595.28]')),'PDF should be A4 landscape');
   await page.waitForFunction(()=>JSON.parse(localStorage.getItem('receipt_unified_history_v2')||'[]').length>=1);
   await page.locator('#back').click();
