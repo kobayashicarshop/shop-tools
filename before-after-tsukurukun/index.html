@@ -84,7 +84,7 @@
   <div class="add-wrap" style="margin-top:14px"><div class="button-row"><button id="addPair" class="btn soft">＋ 比較写真（2枚）</button><button id="addSingle" class="btn primary">＋ 単体写真（1枚）</button></div><p>並び順がそのままPDFのページ順になります。</p></div>
  </section>
  <div class="button-row"><button id="newDocument" class="btn danger">新しく作成（入力を消去）</button></div>
- <p class="footnote">会員登録・広告なし。写真は端末内で処理され、サーバーに送信されません。<br>会社名と担当者名だけを端末保存します。顧客名・写真・コメントは再読み込みすると消えます。<br>写真の個人情報は、お客様の許可を確認してから共有してください。</p>
+ <p class="footnote">会員登録・広告なし。写真は端末内で処理され、サーバーに送信されません。<br>写真・コメント・顧客名はこの端末の下書きに自動保存します。ブラウザーのデータ削除で消える場合があるため、必要なPDFは保存してください。<br>写真の個人情報は、お客様の許可を確認してから共有してください。</p>
 </div>
 <div class="footer-actions"><div class="inner"><button id="createPdf" class="btn primary" disabled>PDFを保存</button><button id="sharePdf" class="btn soft" disabled>PDFを共有</button></div><div class="inner"><span id="footerStatus" class="foot-status">準備中…</span></div></div>
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
@@ -107,9 +107,35 @@ function setStatus(message){$('saveStatus').textContent=message;$('footerStatus'
 function openDb(){return new Promise((resolve,reject)=>{if(!('indexedDB'in window)){reject(new Error('IndexedDBなし'));return}const r=indexedDB.open(DB,1);r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains(STORE))r.result.createObjectStore(STORE)};r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)})}
 function readDraft(){return new Promise((resolve,reject)=>{if(!db){resolve(null);return}const tx=db.transaction(STORE,'readonly'),q=tx.objectStore(STORE).get(CURRENT);q.onsuccess=()=>resolve(q.result||null);q.onerror=()=>reject(q.error)})}
 function putDraft(data){return new Promise((resolve,reject)=>{const tx=db.transaction(STORE,'readwrite');tx.objectStore(STORE).put(data,CURRENT);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error||Error('保存できません'));tx.onabort=()=>reject(tx.error||Error('保存が中断されました'))})}
-function saveSoon(){persistIdentity();setStatus('会社名・名前のみ端末保存')}
-async function saveNow(){persistIdentity();setStatus('会社名・名前のみ端末保存')}
-function migrate(raw){if(!raw||typeof raw!=='object')return;for(const k of ['title','date','company','staff','customer','note'])if(typeof raw[k]==='string')state[k]=raw[k];if(Array.isArray(raw.pairs)){state.pairs=raw.pairs.slice(0,100).map(p=>({id:String(p.id||newPair().id),title:String(p.title||''),comment:String(p.comment||''),before:typeof p.before==='string'?p.before:'',after:typeof p.after==='string'?p.after:'',mode:validModes.has(p.mode)?p.mode:'lr',slider:clamp(p.slider??50,0,100),labels:p.labels!==false,beforeAdj:{zoom:clamp(p.beforeAdj?.zoom??1,1,3),x:clamp(p.beforeAdj?.x??0,-55,55),y:clamp(p.beforeAdj?.y??0,-55,55)},afterAdj:{zoom:clamp(p.afterAdj?.zoom??1,1,3),x:clamp(p.afterAdj?.x??0,-55,55),y:clamp(p.afterAdj?.y??0,-55,55)}}))}}
+let saveQueue=Promise.resolve(),revision=0,dirty=false;
+function saveSoon(){
+ persistIdentity();revision++;dirty=true;setStatus('下書きを保存中…');
+ clearTimeout(saveTimer);
+ saveTimer=setTimeout(()=>{saveNow().catch(error=>{setStatus('保存できません。端末容量をご確認ください');console.error(error)})},750);
+}
+async function saveNow(){
+ clearTimeout(saveTimer);persistIdentity();
+ const serial=revision, snapshot=JSON.parse(JSON.stringify(state));
+ saveQueue=saveQueue.catch(()=>{}).then(async()=>{
+  if(!db)throw new Error('ブラウザーの写真保存機能を利用できません');
+  await putDraft({...snapshot,schemaVersion:2,updatedAt:new Date().toISOString()});
+ });
+ await saveQueue;
+ if(serial===revision){dirty=false;setStatus('下書き保存済み')}
+ return true;
+}
+function migrate(raw){
+ if(!raw||typeof raw!=='object')return;
+ for(const k of ['title','date','company','staff','customer','note'])if(typeof raw[k]==='string')state[k]=raw[k];
+ if(Array.isArray(raw.pairs)){
+  const adj=a=>({zoom:clamp(a?.zoom??1,1,3),x:clamp(a?.x??0,-55,55),y:clamp(a?.y??0,-55,55)});
+  state.pairs=raw.pairs.slice(0,30).filter(p=>p&&typeof p==='object').map(p=>{
+   const common={id:String(p.id||newPair().id),title:String(p.title||'').slice(0,70),comment:String(p.comment||'').slice(0,250)};
+   if(p.kind==='single')return {...common,kind:'single',photo:typeof p.photo==='string'?p.photo:'',photoAdj:adj(p.photoAdj)};
+   return {...common,kind:'pair',before:typeof p.before==='string'?p.before:'',after:typeof p.after==='string'?p.after:'',mode:validModes.has(p.mode)?p.mode:'lr',slider:clamp(p.slider??50,0,100),labels:p.labels!==false,beforeAdj:adj(p.beforeAdj),afterAdj:adj(p.afterAdj)};
+  });
+ }
+}
 // 会社名と名前は報告書の下書きとは別に端末へ保存する。
 // 新規作成・下書きの作り直し後も維持し、入力を空にした場合もその変更を保存する。
 function persistIdentity(){try{localStorage.setItem(IDENTITY,JSON.stringify({company:state.company,staff:state.staff}))}catch(e){console.warn('会社名・名前の保存:',e)}}
@@ -238,11 +264,29 @@ async function pdfFromJpegs(blobs){const enc=new TextEncoder(),parts=[],offsets=
  const xref=length,pagesCount=2+n*3;push(`xref\n0 ${pagesCount+1}\n0000000000 65535 f \n`);for(let i=1;i<=pagesCount;i++)push(String(offsets[i]).padStart(10,'0')+' 00000 n \n');push(`trailer\n<< /Size ${pagesCount+1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`);return new Blob(parts,{type:'application/pdf'})}
 async function buildPdf(){const complete=state.pairs.filter(isReady);if(!complete.length)throw Error('掲載する写真がありません');const blobs=[];for(let i=0;i<complete.length;i++){setStatus(`PDFを作成中 ${i+1}/${complete.length}`);await new Promise(resolve=>requestAnimationFrame(()=>resolve()));const canvas=await pageCanvas(complete[i],i,complete.length);blobs.push(await canvasToBlob(canvas,'image/jpeg',.88));canvas.width=0;canvas.height=0}return pdfFromJpegs(blobs)}
 let pdfWorking=false;
-async function outputPdf(share){if(pdfWorking)return;pdfWorking=true;const btns=[$('createPdf'),$('sharePdf')];btns.forEach(b=>b.disabled=true);try{await saveNow();const blob=await buildPdf(),name=`${safeName(state.title)}_${state.date||new Date().toLocaleDateString('sv-SE')}.pdf`;if(share&&navigator.share&&navigator.canShare){const file=new File([blob],name,{type:'application/pdf'});if(navigator.canShare({files:[file]})){try{await navigator.share({files:[file],title:state.title||'ビフォーアフター報告書'});toast('PDFを共有しました');return}catch(err){if(err.name==='AbortError')return}}}downloadBlob(blob,name);toast(`PDFを作成しました（${state.pairs.filter(isReady).length}ページ）`)}catch(err){console.error(err);toast(err.message||'PDFの作成に失敗しました')}finally{pdfWorking=false;renderPairs();setStatus('会社名・名前のみ端末保存')}}
+async function outputPdf(share){if(pdfWorking)return;pdfWorking=true;const btns=[$('createPdf'),$('sharePdf')];btns.forEach(b=>b.disabled=true);try{await saveNow();const blob=await buildPdf(),name=`${safeName(state.title)}_${state.date||new Date().toLocaleDateString('sv-SE')}.pdf`;if(share&&navigator.share&&navigator.canShare){const file=new File([blob],name,{type:'application/pdf'});if(navigator.canShare({files:[file]})){try{await navigator.share({files:[file],title:state.title||'ビフォーアフター報告書'});toast('PDFを共有しました');return}catch(err){if(err.name==='AbortError')return}}}downloadBlob(blob,name);toast(`PDFを作成しました（${state.pairs.filter(isReady).length}ページ）`)}catch(err){console.error(err);toast(err.message||'PDFの作成に失敗しました')}finally{pdfWorking=false;renderPairs();setStatus('下書き保存済み')}}
 $('createPdf').addEventListener('click',()=>outputPdf(false));$('sharePdf').addEventListener('click',()=>outputPdf(true));
-async function start(){state.date=new Date().toLocaleDateString('sv-SE');restoreIdentity();state.pairs=[newPair()];hydrateForm();renderPairs();setStatus('会社名・名前のみ端末保存')}
+async function start(){
+ state.date=new Date().toLocaleDateString('sv-SE');
+ try{
+  db=await openDb();
+  const draft=await readDraft();
+  if(draft)migrate(draft);
+  restoreIdentity();
+  if(!state.pairs.length)state.pairs=[newPair()];
+  hydrateForm();renderPairs();setStatus(draft?'前回の下書きを復元しました':'下書きの自動保存が有効です');
+ }catch(error){
+  console.error(error);restoreIdentity();
+  if(!state.pairs.length)state.pairs=[newPair()];
+  hydrateForm();renderPairs();setStatus('自動保存できません。端末の設定・容量をご確認ください');
+ }
+}
+window.__toolBeforeLeave=()=>saveNow();
+window.addEventListener('beforeunload',event=>{if(dirty){event.preventDefault();event.returnValue=''}});
+
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')saveNow()});window.addEventListener('pagehide',()=>{if(saveTimer)saveNow()});
 start();
 })();
 </script>
+<script src="../shared/shell.js"></script>
 </body></html>
