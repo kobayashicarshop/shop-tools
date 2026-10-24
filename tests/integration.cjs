@@ -17,7 +17,9 @@ const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQ
   await page.fill('#recipient','確認用テスト');
   await page.fill('#amount','17000');
   await page.fill('#purpose','作業代金として');
+  await page.locator('#issuerTabBtn').click();
   await page.fill('#issuerName','テスト事業者');
+  await page.locator('#receiptTabBtn').click();
   const downloadPromise=page.waitForEvent('download');
   await page.locator('#downloadPdf').click();
   const download=await downloadPromise;
