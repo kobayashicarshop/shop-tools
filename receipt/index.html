@@ -132,14 +132,45 @@ append('%PDF-1.4\n%PDFIMAGE\n');obj(1,'<< /Type /Catalog /Pages 2 0 R >>');obj(2
 function pdfFilename(){return `領収書_${val('issueDate').replaceAll('-','')}_${safeFilename(val('recipient'))}.pdf`}
 function buildPdfReady(){const problems=validate();if(problems.length){delayToast(problems[0]);return null}drawReceipt();return makePdf()}
 function fillDemo(){const set={recipient:'山田 太郎',suffix:'様',receiptNo:'R-0001',amount:'17000',purpose:'サービス提供代金として',taxMode:'10',payment:'オンライン決済',notes:'このたびはご依頼ありがとうございました。',issuerName:'サンプル商店',issuerZip:'650-0000',issuerAddress:'東京都〇〇区〇〇町1-2-3',issuerPhone:'03-0000-0000',issuerReg:''};for(const [k,v] of Object.entries(set))$(k).value=v;$('invoice').checked=false;loadStampImage('');selectedTemplate='';$('templateName').value='';fillTemplateSelect();activeTab('receipt');scheduleRender();delayToast('サンプルを入力しました（架空の内容です）')}
+const DRAFT='receipt_worktools_draft_v1';
+function saveDraft(){
+ try{
+  const values={};
+  for(const id of F){const el=$(id);if(el)values[id]=el.type==='checkbox'?el.checked:el.value}
+  localStorage.setItem(DRAFT,JSON.stringify({values,updatedAt:new Date().toISOString()}));
+ }catch(error){console.warn('領収書の下書き保存に失敗しました',error)}
+}
+function restoreDraft(){
+ try{
+  const values=JSON.parse(localStorage.getItem(DRAFT)||'null')?.values;
+  if(!values||typeof values!=='object')return false;
+  for(const id of F){const el=$(id),v=values[id];if(!el||v===undefined)continue;if(el.type==='checkbox')el.checked=!!v;else if(typeof v==='string'||typeof v==='number')el.value=String(v)}
+  return true;
+ }catch(error){console.warn('領収書の下書きを読み込めませんでした',error);return false}
+}
+function profileDefaults(){
+ try{
+  const p=JSON.parse(localStorage.getItem('worktools_profile_v1')||'{}');
+  const pairs={issuerName:'business',issuerPhone:'phone',issuerAddress:'address',issuerReg:'registration'};
+  for(const [id,key] of Object.entries(pairs))if(!$(id).value&&typeof p[key]==='string')$(id).value=p[key];
+ }catch(error){console.warn('共通設定を読み込めませんでした',error)}
+}
 $('issueDate').value=today();readTemplates();fillTemplateSelect();
-for(const id of F){const el=$(id);el.addEventListener('input',scheduleRender);el.addEventListener('change',scheduleRender)}
+const hasDraft=restoreDraft();if(!hasDraft)profileDefaults();
+window.__toolBeforeLeave=()=>{saveDraft();return Promise.resolve()};
+const clearButton=document.createElement('button');clearButton.type='button';clearButton.className='ghost-small';clearButton.textContent='入力をクリア';
+clearButton.addEventListener('click',()=>{if(!confirm('現在の入力内容を消去しますか？'))return;
+ localStorage.removeItem(DRAFT);for(const id of F){const el=$(id);if(el.type==='checkbox')el.checked=false;else el.value=''}
+ $('issueDate').value=today();profileDefaults();loadStampImage('');selectedTemplate='';fillTemplateSelect();scheduleRender();delayToast('入力をクリアしました')});
+$('demoBtn').insertAdjacentElement('afterend',clearButton);
+
+for(const id of F){const el=$(id);el.addEventListener('input',()=>{scheduleRender();saveDraft()});el.addEventListener('change',()=>{scheduleRender();saveDraft()})}
 $('taxMode').addEventListener('change',()=>{if(val('taxMode')==='mixed'&&num('gross10')+num('gross8')+num('grossNone')===0)$('gross10').value=num('amount');scheduleRender()});
 $('receiptTabBtn').addEventListener('click',()=>activeTab('receipt'));$('issuerTabBtn').addEventListener('click',()=>activeTab('issuer'));$('gotoIssuer').addEventListener('click',()=>activeTab('issuer'));$('gotoReceipt').addEventListener('click',()=>activeTab('receipt'));
 $('templateSelect').addEventListener('change',()=>{selectedTemplate=val('templateSelect');const t=templates.find(t=>t.id===selectedTemplate);if(t){$('templateName').value=t.templateName;applyIssuer(t);delayToast('テンプレートを読み込みました')}else{$('templateName').value=''}});
 $('saveNewTemplate').addEventListener('click',saveNew);$('overwriteTemplate').addEventListener('click',overwrite);$('deleteTemplate').addEventListener('click',removeTemplate);
-$('stampFile').addEventListener('change',async e=>{const file=e.target.files?.[0];if(!file)return;try{const data=await processStamp(file,$('removeWhite').checked);loadStampImage(data);delayToast('角印を取り込みました')}catch(err){delayToast(err.message)}finally{e.target.value=''}});
-$('removeStamp').addEventListener('click',()=>{loadStampImage('');delayToast('角印を外しました')});$('exportTemplates').addEventListener('click',exportAll);$('importTemplatesFile').addEventListener('change',e=>importAll(e.target.files?.[0]));
+$('stampFile').addEventListener('change',async e=>{const file=e.target.files?.[0];if(!file)return;try{const data=await processStamp(file,$('removeWhite').checked);loadStampImage(data);saveDraft();delayToast('角印を取り込みました')}catch(err){delayToast(err.message)}finally{e.target.value=''}});
+$('removeStamp').addEventListener('click',()=>{loadStampImage('');saveDraft();delayToast('角印を外しました')});$('exportTemplates').addEventListener('click',exportAll);$('importTemplatesFile').addEventListener('change',e=>importAll(e.target.files?.[0]));
 $('downloadPdf').addEventListener('click',()=>{try{const pdf=buildPdfReady();if(pdf){downloadBlob(pdf,pdfFilename());delayToast('PDFを作成しました')}}catch(e){delayToast('PDFの作成に失敗しました：'+e.message)}});
 $('sharePdf').addEventListener('click',async()=>{try{const pdf=buildPdfReady();if(!pdf)return;const file=new File([pdf],pdfFilename(),{type:'application/pdf'});if(navigator.canShare?.({files:[file]})&&navigator.share){try{await navigator.share({files:[file],title:'領収書PDF'});return}catch(e){if(e.name==='AbortError')return}}downloadBlob(pdf,pdfFilename());delayToast('共有が使えないためPDFを保存しました')}catch(e){delayToast('PDFの共有に失敗しました：'+e.message)}});
 $('demoBtn').addEventListener('click',fillDemo);
