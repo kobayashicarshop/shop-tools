@@ -60,7 +60,9 @@ const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQ
   const after=page.locator('input[data-file="after"]').first();
   await before.setInputFiles({name:'before.png',mimeType:'image/png',buffer:png});
   await after.setInputFiles({name:'after.png',mimeType:'image/png',buffer:png});
-  await page.waitForTimeout(1300);
+  await page.waitForFunction(()=>document.querySelectorAll('img.photo').length>=2);
+  await page.waitForFunction(()=>document.querySelector('#saveStatus')?.textContent.includes('保存済み'));
+
   await page.locator('nav.tool-nav a[data-tool-link="home"]').click();
   await page.waitForURL(base+'/');
   await page.locator('nav.tool-nav a[data-tool-link="photo"]').click();
