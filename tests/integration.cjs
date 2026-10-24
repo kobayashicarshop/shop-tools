@@ -99,6 +99,11 @@ const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQ
   await page.locator('.estimate-line').first().locator('[data-field="description"]').fill('取付工賃');
   await page.locator('.estimate-line').first().locator('[data-field="quantity"]').fill('2');
   await page.locator('.estimate-line').first().locator('[data-field="unitPrice"]').fill('10000');
+  const unitPicker=page.locator('.estimate-line').first().locator('[data-field="unit"]');
+  assert((await unitPicker.locator('option').allTextContents()).includes('無し'),'Unit choices include 無し');
+  await unitPicker.selectOption('無し');
+  assert.equal(await unitPicker.inputValue(),'無し');
+  assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('estimate_worktools_draft_v1')).items[0].unit),'無し','Save chosen unit in draft');
   await page.locator('#addItem').click();
   await page.locator('.estimate-line').nth(1).locator('[data-field="description"]').fill('部品');
   await page.locator('.estimate-line').nth(1).locator('[data-field="unitPrice"]').fill('5000');
@@ -107,6 +112,22 @@ const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQ
   await page.locator('#create').click();
   await page.locator('#s-preview.active').waitFor();
   assert.equal(await page.locator('#previewPages canvas').count(),1);
+  const blankUnitInk=async()=>page.locator('#previewPages canvas').evaluate(canvas=>{
+    const pixels=canvas.getContext('2d').getImageData(925,771,72,54).data;
+    let dark=0;for(let i=0;i<pixels.length;i+=4)if(pixels[i]<140&&pixels[i+1]<140&&pixels[i+2]<140)dark++;return dark;
+  });
+  const noUnitPixels=await blankUnitInk();
+  assert(noUnitPixels<25,'Unit cell stays empty in PDF when 無し selected');
+  await page.locator('#back').click();
+  await page.locator('.estimate-line').first().locator('[data-field="unit"]').selectOption('式');
+  await page.locator('#create').click();
+  await page.locator('#s-preview.active').waitFor();
+  const withUnitPixels=await blankUnitInk();
+  assert(withUnitPixels>noUnitPixels+25,'Unit text is rendered for regular units');
+  await page.locator('#back').click();
+  await page.locator('.estimate-line').first().locator('[data-field="unit"]').selectOption('無し');
+  await page.locator('#create').click();
+  await page.locator('#s-preview.active').waitFor();
   const sampleTaxRegion=async()=>page.locator('#previewPages canvas').evaluate(canvas=>{
     const pixels=canvas.getContext('2d').getImageData(1000,1740,550,95).data;
     let dark=0;
@@ -131,6 +152,7 @@ const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQ
   await page.locator('#s-home button[data-go="edit"]').click();
   assert.equal(await page.locator('#showTaxDetails').isChecked(),false,'Display preference survives reload');
   assert.equal(await page.inputValue('#recipient'),'見積テスト宛先','Draft survives page reload');
+  assert.equal(await page.locator('.estimate-line').first().locator('[data-field="unit"]').inputValue(),'無し','Unit choice survives page reload');
   await page.locator('#create').click();
   await page.locator('#s-preview.active').waitFor();
   const quoteDownloadPromise=page.waitForEvent('download');
@@ -143,6 +165,8 @@ const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQ
   await page.locator('#back').click();await page.locator('#back').click();
   await page.locator('#s-home button[data-go="history"]').click();
   assert.equal(await page.locator('#historyList .item').count(),1,'Quotation saved to history');
+  await page.locator('#historyList [data-reuse]').first().click();
+  assert.equal(await page.locator('.estimate-line').first().locator('[data-field="unit"]').inputValue(),'無し','Unit is restored from history');
   await page.locator('#back').click();
   await page.locator('#s-home button[data-go="edit"]').click();
   assert.equal(await page.inputValue('#recipient'),'見積テスト宛先','Quotation draft survives navigation');
@@ -155,6 +179,8 @@ const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQ
   await page.locator('#back').click();
   await page.locator('#s-home button[data-go="templates"]').click();
   assert.equal(await page.locator('#templateList .item').count(),1);
+  await page.locator('#templateList [data-template]').first().click();
+  assert.equal(await page.locator('.estimate-line').first().locator('[data-field="unit"]').inputValue(),'無し','Unit is restored from template');
   await page.locator('#back').click();
   await page.locator('#s-home button[data-go="edit"]').click();
   await page.fill('#recipient','複数ページ見積テスト');

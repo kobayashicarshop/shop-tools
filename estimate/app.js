@@ -64,7 +64,7 @@ function renderItems(){
  '<label>品目・作業内容<input data-field="description" maxlength="110" placeholder="例：取付作業工賃" value="'+esc(line.description)+'"></label>'+
  '<div class="line-fields">'+
  '<label>数量<input data-field="quantity" type="number" min="0.01" step="0.01" max="99999" value="'+esc(line.quantity)+'"></label>'+
- '<label>単位<select data-field="unit">'+['式','個','台','件','時間','m','回','セット','日','その他'].map(u=>'<option '+(u===line.unit?'selected':'')+'>'+u+'</option>').join('')+'</select></label>'+
+ '<label>単位<select data-field="unit">'+['式','無し','個','台','件','時間','m','回','セット','日','その他'].map(u=>'<option '+(u===line.unit?'selected':'')+'>'+u+'</option>').join('')+'</select></label>'+
  '<label>単価（税抜・円）<input data-field="unitPrice" type="number" min="0" step="1" max="999999999" inputmode="numeric" placeholder="10000" value="'+esc(line.unitPrice)+'"></label>'+
  '<label>消費税<select data-field="rate">'+[['10','10%'],['8','8%'],['none','非課税']].map(([v,n])=>'<option value="'+v+'" '+(v===(line.rate||'10')?'selected':'')+'>'+n+'</option>').join('')+'</select></label>'+
  '</div><div class="line-sum">金額：'+yen(calcLine(line))+'</div></div>').join('');
@@ -196,7 +196,7 @@ async function makePages(data){
    t(it.description,120,y,27,{maxWidth:610});
    if(data.showTaxDetails)t(it.rate==='none'?'非課税':it.rate+'%',120,y+26,19,{color:'#8794a4'});
    t(Number(it.quantity).toLocaleString('ja-JP'),825,y,26,{align:'right'});
-   t(it.unit,980,y,25,{align:'right'});
+   if(it.unit&&it.unit!=='無し')t(it.unit,980,y,25,{align:'right'});
    t(yen(Number(it.unitPrice)),1250,y,25,{align:'right'});
    t(yen(it.amount),1530,y,25,{align:'right'});
    line(y+34,105,1550);
