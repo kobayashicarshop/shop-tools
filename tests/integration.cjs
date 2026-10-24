@@ -50,7 +50,7 @@ const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQ
   assert.equal(await page.locator('#heading').count(),1);
   await page.locator('nav.tool-nav a[data-tool-link="receipt"]').click();
   await page.waitForURL('**/receipt/');
-  await page.locator('button[data-go="edit"]').click();
+  await page.locator('#s-home button[data-go="edit"]').click();
   assert.equal(await page.inputValue('#recipient'),'確認用テスト','Receipt draft should survive switching');
 
   await page.locator('nav.tool-nav a[data-tool-link="photo"]').click();
@@ -75,7 +75,7 @@ const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQ
   assert((await page.locator('#status').innerText()).includes('保存しました'));
   await page.locator('nav.tool-nav a[data-tool-link="receipt"]').click();
   await page.waitForURL('**/receipt/');
-  await page.locator('button[data-go="edit"]').click();
+  await page.locator('#s-home button[data-go="edit"]').click();
   assert.equal(await page.inputValue('#recipient'),'確認用テスト');
   assert.equal(errors.length,0,'JS runtime errors: '+errors.join('; '));
   console.log('PASS: unified home, receipt PDF and draft, calculator, photo photo-draft, common navigation, settings');
