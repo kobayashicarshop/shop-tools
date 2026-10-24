@@ -123,6 +123,24 @@ const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQ
   await page.locator('#back').click();
   await page.locator('#s-home button[data-go="templates"]').click();
   assert.equal(await page.locator('#templateList .item').count(),1);
+  await page.locator('#back').click();
+  await page.locator('#s-home button[data-go="edit"]').click();
+  // Ten items per page; long quotations must remain multi-page rather than clipping.
+  for(let j=0;j<9;j++){
+    await page.locator('#addItem').click();
+    const item=page.locator('.estimate-line').last();
+    await item.locator('[data-field="description"]').fill('追加工事項目 '+(j+1));
+    await item.locator('[data-field="unitPrice"]').fill('1000');
+  }
+  await page.locator('#create').click();
+  await page.locator('#s-preview.active').waitFor();
+  assert.equal(await page.locator('#previewPages canvas').count(),2,'Long estimates must show two pages');
+  const multiDownload=page.waitForEvent('download');
+  await page.locator('#downloadPdf').click();
+  const secondFile=await multiDownload;
+  const secondPdf=fs.readFileSync(await secondFile.path());
+  assert(secondPdf.includes(Buffer.from('/Count 2')),'Multi-page quote PDF count');
+  await page.waitForFunction(()=>JSON.parse(localStorage.getItem('estimate_worktools_history_v1')||'[]').length>=2);
 
   await page.goto(base+'/settings/');
   await page.fill('#business','テスト事業者');
