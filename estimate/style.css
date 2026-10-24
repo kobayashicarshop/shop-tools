@@ -1,0 +1,15 @@
+.item-list{display:grid;gap:14px;margin-top:14px}
+.estimate-line{border:1px solid #d1deef;border-radius:15px;padding:15px;background:#fff}
+.estimate-line .line-head{display:flex;align-items:center;justify-content:space-between;gap:8px;font-weight:700;margin-bottom:13px}
+.estimate-line input,.estimate-line select{font-size:16px;min-height:48px;padding:9px 10px;border-radius:9px;border:1px solid #c3cfde;width:100%;background:#fff}
+.estimate-line .line-fields{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:11px}
+.estimate-line label{font-size:12px;font-weight:650;color:#46536b;display:block}
+.estimate-line label input,.estimate-line label select{margin-top:6px}
+.estimate-line button{background:#fff0f0;border:1px solid #edc8c8;border-radius:9px;color:#a14242;padding:7px 10px}
+.estimate-line .line-sum{text-align:right;font-weight:720;font-size:16px;margin-top:12px}
+.estimate-total{display:flex;align-items:center;justify-content:space-between;padding:21px 12px;font-size:16px;font-weight:720}
+.estimate-total strong{font-size:24px;color:#0787f8;font-variant-numeric:tabular-nums}
+#previewPages{display:grid;gap:14px;margin-top:18px}
+#previewPages canvas{display:block;width:100%;height:auto;background:#fff;border:1px solid #e3e7ec;box-shadow:0 4px 18px #0001}
+#sealPreview[hidden]{display:none}
+@media(max-width:380px){.estimate-line{padding:11px}.estimate-line .line-fields{gap:8px}}
