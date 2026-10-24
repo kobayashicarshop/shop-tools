@@ -19,7 +19,10 @@ const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQ
   await page.locator('button[data-go="edit"]').first().click();
   assert.equal(await page.locator('#screenTitle').innerText(),'領収書を入力');
   await page.fill('#recipient','確認用テスト');
-  await page.fill('#amount','17000');
+  const paymentChoices=await page.locator('#payment option').allTextContents();
+  assert.deepEqual(paymentChoices,['記載しない','クレジットカード','銀行振込','現金','オンラインカード決済','後払い']);
+  await page.selectOption('#payment','オンラインカード決済');
+  await page.fill('#amount','28000');
   await page.fill('#purpose','作業代金として');
   await page.fill('#issuerText','テスト事業者\\n東京都〇〇区');
   await page.locator('#saveIssuer').click();
@@ -28,6 +31,14 @@ const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQ
   await page.locator('#create').click();
   await page.locator('#s-preview.active').waitFor();
   assert((await page.locator('#pdfCanvas').evaluate(c=>c.width))>1500);
+  const printLayout=await page.locator('#pdfCanvas').evaluate(c=>{
+    const ctx=c.getContext('2d'),p=(x,y)=>Array.from(ctx.getImageData(x,y,1,1).data).slice(0,3);
+    return {paperEdge:p(64,60),headerRule:p(400,228),outsideFrame:p(64,570)};
+  });
+  assert(printLayout.paperEdge.every(v=>v>245),'Reference receipt uses a clean white paper without a frame');
+  assert(printLayout.headerRule.every(v=>v<100),'Reference receipt has a thin horizontal rule under the title');
+  assert(printLayout.outsideFrame.every(v=>v>245),'No enclosing border must be drawn around the receipt');
+
   const downloadPromise=page.waitForEvent('download');
   await page.locator('#downloadPdf').click();
   const download=await downloadPromise;
@@ -44,7 +55,7 @@ const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQ
   await page.locator('button[data-go="templates"]').click();
   assert((await page.locator('#templateList .item').count())>=1,'Templates should be available');
   await page.locator('[data-load-template]').first().click();
-  assert.equal(await page.inputValue('#amount'),'17000');
+  assert.equal(await page.inputValue('#amount'),'28000');
   await page.locator('nav.tool-nav a[data-tool-link="calc"]').click();
   await page.waitForURL('**/merchant-calculator/');
   assert.equal(await page.locator('#heading').count(),1);
