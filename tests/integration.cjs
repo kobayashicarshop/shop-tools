@@ -88,71 +88,67 @@ const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQ
   assert.equal(await page.inputValue('#customerName'),'写真保存テスト','Photo draft should survive navigation');
   assert((await page.locator('img.photo').count())>=2,'Restored comparison images should remain visible');
 
-  // A quotation remains independent from the receipt editor and saves A4 portrait PDFs.
+  // Quotation: inclusive input is the default; unit fields are completely removed.
   await page.goto(base+'/estimate/');
-  assert.equal(await page.locator('#s-home .big-btn').count(),3,'Quotation home has create, templates, history');
+  assert.equal(await page.locator('#s-home .big-btn').count(),3);
   await page.locator('#s-home button[data-go="edit"]').click();
-  assert.equal(await page.locator('#showTaxDetails').isChecked(),false,'Tax breakdown must default to hidden');
+  assert.equal(await page.locator('input[name="priceMode"]:checked').inputValue(),'incl','Default mode is tax-inclusive');
+  assert.equal(await page.locator('[data-field="unit"]').count(),0,'There must be no unit input field');
+  assert.equal(await page.locator('#showTaxDetails').isChecked(),false,'Tax display still defaults OFF');
   await page.fill('#recipient','見積テスト宛先');
   await page.fill('#subject','機器取付見積もり');
   await page.fill('#issuerText','テスト事業者');
   await page.locator('.estimate-line').first().locator('[data-field="description"]').fill('取付工賃');
   await page.locator('.estimate-line').first().locator('[data-field="quantity"]').fill('2');
   await page.locator('.estimate-line').first().locator('[data-field="unitPrice"]').fill('10000');
-  const unitPicker=page.locator('.estimate-line').first().locator('[data-field="unit"]');
-  assert((await unitPicker.locator('option').allTextContents()).includes('無し'),'Unit choices include 無し');
-  await unitPicker.selectOption('無し');
-  assert.equal(await unitPicker.inputValue(),'無し');
-  assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('estimate_worktools_draft_v1')).items[0].unit),'無し','Save chosen unit in draft');
   await page.locator('#addItem').click();
   await page.locator('.estimate-line').nth(1).locator('[data-field="description"]').fill('部品');
   await page.locator('.estimate-line').nth(1).locator('[data-field="unitPrice"]').fill('5000');
   await page.locator('.estimate-line').nth(1).locator('[data-field="rate"]').selectOption('8');
-  assert.equal((await page.locator('#liveTotal').innerText()).trim(),'¥27,400','10% and 8% group tax sums');
+  assert.equal((await page.locator('#liveTotal').innerText()).trim(),'¥25,000','Mixed 10%/8% inclusive input must not add tax again');
+
+  // Switching only changes interpretation, never silently edits entered prices.
+  await page.locator('#priceModePicker label:has(input[value="excl"])').click();
+  assert.equal((await page.locator('#liveTotal').innerText()).trim(),'¥27,400','Exclusive mode adds grouped 10%/8% tax');
+  assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('estimate_worktools_price_mode_v1'))),'excl','Price mode preference is saved');
+  assert.equal(await page.locator('.estimate-line').first().locator('[data-field="unitPrice"]').inputValue(),'10000');
+  await page.reload();
+  await page.locator('#s-home button[data-go="edit"]').click();
+  assert.equal(await page.locator('input[name="priceMode"]:checked').inputValue(),'excl','Remember price mode across reload');
+  assert.equal((await page.locator('#liveTotal').innerText()).trim(),'¥27,400','Reloaded draft keeps exclusive calculation');
+  await page.locator('#priceModePicker label:has(input[value="incl"])').click();
+  assert.equal((await page.locator('#liveTotal').innerText()).trim(),'¥25,000');
+  assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('estimate_worktools_price_mode_v1'))),'incl');
+
   await page.locator('#create').click();
   await page.locator('#s-preview.active').waitFor();
   assert.equal(await page.locator('#previewPages canvas').count(),1);
-  const blankUnitInk=async()=>page.locator('#previewPages canvas').evaluate(canvas=>{
-    const pixels=canvas.getContext('2d').getImageData(925,771,72,54).data;
-    let dark=0;for(let i=0;i<pixels.length;i+=4)if(pixels[i]<140&&pixels[i+1]<140&&pixels[i+2]<140)dark++;return dark;
+  const noUnitInk=await page.locator('#previewPages canvas').evaluate(canvas=>{
+   const data=canvas.getContext('2d').getImageData(1060,765,110,65).data;
+   let dark=0;for(let i=0;i<data.length;i+=4)if(Math.max(data[i],data[i+1],data[i+2])<140)dark++;return dark;
   });
-  const noUnitPixels=await blankUnitInk();
-  assert(noUnitPixels<25,'Unit cell stays empty in PDF when 無し selected');
-  await page.locator('#back').click();
-  await page.locator('.estimate-line').first().locator('[data-field="unit"]').selectOption('式');
-  await page.locator('#create').click();
-  await page.locator('#s-preview.active').waitFor();
-  const withUnitPixels=await blankUnitInk();
-  assert(withUnitPixels>noUnitPixels+25,'Unit text is rendered for regular units');
-  await page.locator('#back').click();
-  await page.locator('.estimate-line').first().locator('[data-field="unit"]').selectOption('無し');
-  await page.locator('#create').click();
-  await page.locator('#s-preview.active').waitFor();
-  const sampleTaxRegion=async()=>page.locator('#previewPages canvas').evaluate(canvas=>{
-    const pixels=canvas.getContext('2d').getImageData(1000,1740,550,95).data;
-    let dark=0;
-    for(let i=0;i<pixels.length;i+=4)if(pixels[i]<140&&pixels[i+1]<140&&pixels[i+2]<140)dark++;
-    return dark;
+  assert(noUnitInk<25,'No unit is rendered in the former unit column');
+  const taxPixels=async()=>page.locator('#previewPages canvas').evaluate(canvas=>{
+   const px=canvas.getContext('2d').getImageData(1000,1740,550,95).data;
+   let dark=0;for(let i=0;i<px.length;i+=4)if(px[i]<140&&px[i+1]<140&&px[i+2]<140)dark++;return dark;
   });
-  const defaultInk=await sampleTaxRegion();
-  assert(defaultInk<25,'No tax rows or divider visible when tax display is off');
+  const defaultInk=await taxPixels();
+  assert(defaultInk<25,'Tax details OFF leaves breakdown blank');
   await page.locator('#back').click();
   await page.locator('label.switch:has(#showTaxDetails)').click();
   assert.equal(await page.locator('#showTaxDetails').isChecked(),true);
-  assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('estimate_worktools_tax_display_v1'))),true,'Remember ON preference');
   await page.locator('#create').click();
   await page.locator('#s-preview.active').waitFor();
-  const enabledInk=await sampleTaxRegion();
-  assert(enabledInk>defaultInk+150,'Tax breakdown should be visible on PDF when enabled');
+  assert((await taxPixels())>defaultInk+150,'Tax breakdown appears only when enabled');
   await page.locator('#back').click();
   await page.locator('label.switch:has(#showTaxDetails)').click();
-  assert.equal(await page.locator('#showTaxDetails').isChecked(),false);
-  assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('estimate_worktools_tax_display_v1'))),false,'Remember OFF preference');
   await page.reload();
   await page.locator('#s-home button[data-go="edit"]').click();
-  assert.equal(await page.locator('#showTaxDetails').isChecked(),false,'Display preference survives reload');
-  assert.equal(await page.inputValue('#recipient'),'見積テスト宛先','Draft survives page reload');
-  assert.equal(await page.locator('.estimate-line').first().locator('[data-field="unit"]').inputValue(),'無し','Unit choice survives page reload');
+  assert.equal(await page.locator('input[name="priceMode"]:checked').inputValue(),'incl');
+  assert.equal(await page.locator('#showTaxDetails').isChecked(),false);
+  assert.equal(await page.inputValue('#recipient'),'見積テスト宛先');
+  assert.equal(await page.locator('[data-field="unit"]').count(),0);
+
   await page.locator('#create').click();
   await page.locator('#s-preview.active').waitFor();
   const quoteDownloadPromise=page.waitForEvent('download');
@@ -164,31 +160,29 @@ const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQ
   await page.waitForFunction(()=>JSON.parse(localStorage.getItem('estimate_worktools_history_v1')||'[]').length>=1);
   await page.locator('#back').click();await page.locator('#back').click();
   await page.locator('#s-home button[data-go="history"]').click();
-  assert.equal(await page.locator('#historyList .item').count(),1,'Quotation saved to history');
+  assert.equal(await page.locator('#historyList .item').count(),1);
   await page.locator('#historyList [data-reuse]').first().click();
-  assert.equal(await page.locator('.estimate-line').first().locator('[data-field="unit"]').inputValue(),'無し','Unit is restored from history');
+  assert.equal(await page.locator('input[name="priceMode"]:checked').inputValue(),'incl','History preserves price mode');
+  assert.equal(await page.locator('[data-field="unit"]').count(),0);
   await page.locator('#back').click();
   await page.locator('#s-home button[data-go="edit"]').click();
-  assert.equal(await page.inputValue('#recipient'),'見積テスト宛先','Quotation draft survives navigation');
-  assert.equal(await page.locator('#showTaxDetails').isChecked(),false,'Tax preference remains OFF across navigation');
   page.once('dialog',dialog=>dialog.accept('定番のお見積り'));
   await page.locator('#saveTemplate').click();
   page.once('dialog',dialog=>dialog.accept());
   await page.locator('#clearDraft').click();
-  assert.equal(await page.locator('#showTaxDetails').isChecked(),false,'New quote inherits display preference');
+  assert.equal(await page.locator('input[name="priceMode"]:checked').inputValue(),'incl','New quotes inherit inclusive preference');
   await page.locator('#back').click();
   await page.locator('#s-home button[data-go="templates"]').click();
   assert.equal(await page.locator('#templateList .item').count(),1);
   await page.locator('#templateList [data-template]').first().click();
-  assert.equal(await page.locator('.estimate-line').first().locator('[data-field="unit"]').inputValue(),'無し','Unit is restored from template');
+  assert.equal(await page.locator('input[name="priceMode"]:checked').inputValue(),'incl','Templates preserve price mode');
+  assert.equal(await page.locator('[data-field="unit"]').count(),0);
   await page.locator('#back').click();
   await page.locator('#s-home button[data-go="edit"]').click();
   await page.fill('#recipient','複数ページ見積テスト');
   await page.fill('#issuerText','テスト事業者');
-  // After a new quote, refill its cleared first row before testing pagination.
   await page.locator('.estimate-line').first().locator('[data-field="description"]').fill('基礎作業');
   await page.locator('.estimate-line').first().locator('[data-field="unitPrice"]').fill('1000');
-  // Ten items per page; 11 line items must remain multi-page rather than clipping.
   for(let j=0;j<10;j++){
     await page.locator('#addItem').click();
     const item=page.locator('.estimate-line').last();
@@ -197,12 +191,12 @@ const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQ
   }
   await page.locator('#create').click();
   await page.locator('#s-preview.active').waitFor();
-  assert.equal(await page.locator('#previewPages canvas').count(),2,'Long estimates must show two pages');
+  assert.equal(await page.locator('#previewPages canvas').count(),2);
   const multiDownload=page.waitForEvent('download');
   await page.locator('#downloadPdf').click();
   const secondFile=await multiDownload;
   const secondPdf=fs.readFileSync(await secondFile.path());
-  assert(secondPdf.includes(Buffer.from('/Count 2')),'Multi-page quote PDF count');
+  assert(secondPdf.includes(Buffer.from('/Count 2')),'11-item quote has two PDF pages');
   await page.waitForFunction(()=>JSON.parse(localStorage.getItem('estimate_worktools_history_v1')||'[]').length>=2);
 
   await page.goto(base+'/settings/');
