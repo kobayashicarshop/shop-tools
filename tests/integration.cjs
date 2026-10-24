@@ -30,6 +30,8 @@ const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQ
   await page.locator('#saveTemplate').click();
   await page.locator('#create').click();
   await page.locator('#s-preview.active').waitFor();
+  assert.equal(await page.locator('#sharePdf').count(),0,'PDF share button must be absent');
+  assert.equal(await page.locator('#s-preview.active #downloadPdf').count(),1,'Keep the save button');
   assert((await page.locator('#pdfCanvas').evaluate(c=>c.width))>1500);
   const printLayout=await page.locator('#pdfCanvas').evaluate(c=>{
     const ctx=c.getContext('2d'),k=c.width/1654,p=(x,y)=>Array.from(ctx.getImageData(Math.round(x*k),Math.round(y*k),1,1).data).slice(0,3);
