@@ -1,0 +1,66 @@
+name: Unified tools browser tests
+on:
+  push:
+    branches:
+      - 'feature/unified-work-tools-*'
+  pull_request:
+    paths:
+      - 'index.html'
+      - 'receipt/**'
+      - 'merchant-calculator/**'
+      - 'before-after-tsukurukun/**'
+      - 'shared/**'
+      - 'settings/**'
+      - 'tests/**'
+      - 'manifest.webmanifest'
+      - 'sw.js'
+  workflow_dispatch:
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Check JavaScript syntax in HTML and standalone files
+        run: |
+          python - <<'PY'
+          from html.parser import HTMLParser
+          from pathlib import Path
+          import subprocess, tempfile
+          class Scripts(HTMLParser):
+              def __init__(self): super().__init__();self.active=False;self.parts=[];self.current=[]
+              def handle_starttag(self,t,attrs):
+                  if t=='script':
+                      self.active=not dict(attrs).get('src')
+                      self.current=[]
+              def handle_data(self,data):
+                  if self.active:self.current.append(data)
+              def handle_endtag(self,t):
+                  if t=='script' and self.active:self.parts.append(''.join(self.current));self.active=False
+          for html in ['index.html','receipt/index.html','merchant-calculator/index.html','before-after-tsukurukun/index.html','settings/index.html']:
+              p=Scripts();p.feed(Path(html).read_text('utf-8'))
+              for i,script in enumerate(p.parts):
+                  with tempfile.NamedTemporaryFile(suffix='.js',mode='w',encoding='utf-8') as f:
+                      f.write(script);f.flush()
+                      subprocess.run(['node','--check',f.name],check=True)
+          for path in ['shared/shell.js','sw.js']:
+              subprocess.run(['node','--check',path],check=True)
+          print('All scripts parse')
+          PY
+      - name: Install browser test dependencies
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Run local web server and browser checks
+        run: |
+          python -m http.server 8765 --bind 127.0.0.1 > /tmp/portable-tools-server.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill "$SERVER_PID" || true' EXIT
+          sleep 2
+          node tests/integration.cjs
