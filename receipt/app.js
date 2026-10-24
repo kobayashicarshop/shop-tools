@@ -60,7 +60,7 @@ root.innerHTML=[
 '<p class="smallnote" style="margin:8px 0 0">作成後に完成イメージを確認して、PDFを保存できます。</p>',
 '</div></section>',
 '<section id="s-preview" class="screen"><div class="container edit"><p class="helper" style="text-align:center">完成イメージ　A4横・PDF</p>',
-'<div class="preview-paper"><canvas id="pdfCanvas" width="1654" height="1169" aria-label="領収書プレビュー"></canvas></div>',
+'<div class="preview-paper"><canvas id="pdfCanvas" width="2339" height="1654" aria-label="領収書プレビュー"></canvas></div>',
 '<button class="action-btn primary" id="downloadPdf" type="button">PDFを保存</button>',
 '<button class="action-btn" id="sharePdf" type="button">PDFを共有</button>',
 '<button class="action-btn outline" data-go="edit" type="button">入力内容を修正</button>',
@@ -176,7 +176,8 @@ function wrap(ctx,str,x,y,maxWidth,lineH,maxLines=3){
 }
 async function draw(data){
  const canvas=$('pdfCanvas'),ctx=canvas.getContext('2d');
- const w=canvas.width,h=canvas.height,T=totals(data);
+ const w=1654,h=1169,T=totals(data);
+ ctx.setTransform(canvas.width/w,0,0,canvas.height/h,0,0);
  const mincho='"Hiragino Mincho ProN","Yu Mincho","Noto Serif CJK JP",serif';
  const gothic='"Hiragino Sans","Yu Gothic","Noto Sans CJK JP",sans-serif';
  const ink='#111111';
@@ -277,7 +278,7 @@ function pdfBytes(canvas){
  obj(1,'<< /Type /Catalog /Pages 2 0 R >>');
  obj(2,'<< /Type /Pages /Kids [3 0 R] /Count 1 >>');
  obj(3,'<< /Type /Page /Parent 2 0 R /MediaBox [0 0 841.89 595.28] /Resources << /XObject << /Img 4 0 R >> >> /Contents 5 0 R >>');
- offsets[4]=pos;append('4 0 obj\n<< /Type /XObject /Subtype /Image /Width 1654 /Height 1169 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length '+jpeg.byteLength+' >>\nstream\n');
+ offsets[4]=pos;append('4 0 obj\n<< /Type /XObject /Subtype /Image /Width '+canvas.width+' /Height '+canvas.height+' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length '+jpeg.byteLength+' >>\nstream\n');
  append(jpeg);append('\nendstream\nendobj\n');
  const stream='q\n841.89 0 0 595.28 0 0 cm\n/Img Do\nQ\n';
  obj(5,'<< /Length '+enc.encode(stream).byteLength+' >>\nstream\n'+stream+'endstream');
