@@ -266,17 +266,25 @@ async function buildPdf(){const complete=state.pairs.filter(isReady);if(!complet
 let pdfWorking=false;
 async function outputPdf(share){if(pdfWorking)return;pdfWorking=true;const btns=[$('createPdf'),$('sharePdf')];btns.forEach(b=>b.disabled=true);try{await saveNow();const blob=await buildPdf(),name=`${safeName(state.title)}_${state.date||new Date().toLocaleDateString('sv-SE')}.pdf`;if(share&&navigator.share&&navigator.canShare){const file=new File([blob],name,{type:'application/pdf'});if(navigator.canShare({files:[file]})){try{await navigator.share({files:[file],title:state.title||'ビフォーアフター報告書'});toast('PDFを共有しました');return}catch(err){if(err.name==='AbortError')return}}}downloadBlob(blob,name);toast(`PDFを作成しました（${state.pairs.filter(isReady).length}ページ）`)}catch(err){console.error(err);toast(err.message||'PDFの作成に失敗しました')}finally{pdfWorking=false;renderPairs();setStatus('下書き保存済み')}}
 $('createPdf').addEventListener('click',()=>outputPdf(false));$('sharePdf').addEventListener('click',()=>outputPdf(true));
+function applySharedProfile(){
+ try{
+  const p=JSON.parse(localStorage.getItem('worktools_profile_v1')||'{}');
+  if(!state.company&&typeof p.business==='string')state.company=p.business;
+  if(!state.staff&&typeof p.staff==='string')state.staff=p.staff;
+  persistIdentity();
+ }catch(error){console.warn('共通設定を読み込めませんでした',error)}
+}
 async function start(){
  state.date=new Date().toLocaleDateString('sv-SE');
  try{
   db=await openDb();
   const draft=await readDraft();
   if(draft)migrate(draft);
-  restoreIdentity();
+  restoreIdentity();applySharedProfile();
   if(!state.pairs.length)state.pairs=[newPair()];
   hydrateForm();renderPairs();setStatus(draft?'前回の下書きを復元しました':'下書きの自動保存が有効です');
  }catch(error){
-  console.error(error);restoreIdentity();
+  console.error(error);restoreIdentity();applySharedProfile();
   if(!state.pairs.length)state.pairs=[newPair()];
   hydrateForm();renderPairs();setStatus('自動保存できません。端末の設定・容量をご確認ください');
  }
