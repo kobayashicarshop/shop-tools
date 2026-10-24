@@ -116,14 +116,16 @@ const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQ
   const defaultInk=await sampleTaxRegion();
   assert(defaultInk<25,'No tax rows or divider visible when tax display is off');
   await page.locator('#back').click();
-  await page.locator('#showTaxDetails').check();
+  await page.locator('label.switch:has(#showTaxDetails)').click();
+  assert.equal(await page.locator('#showTaxDetails').isChecked(),true);
   assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('estimate_worktools_tax_display_v1'))),true,'Remember ON preference');
   await page.locator('#create').click();
   await page.locator('#s-preview.active').waitFor();
   const enabledInk=await sampleTaxRegion();
   assert(enabledInk>defaultInk+150,'Tax breakdown should be visible on PDF when enabled');
   await page.locator('#back').click();
-  await page.locator('#showTaxDetails').uncheck();
+  await page.locator('label.switch:has(#showTaxDetails)').click();
+  assert.equal(await page.locator('#showTaxDetails').isChecked(),false);
   assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('estimate_worktools_tax_display_v1'))),false,'Remember OFF preference');
   await page.reload();
   await page.locator('#s-home button[data-go="edit"]').click();
