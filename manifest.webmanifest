@@ -1,0 +1,19 @@
+{
+  "name": "仕事の便利ツール",
+  "short_name": "便利ツール",
+  "description": "領収書・手取り計算・写真報告をひとつに。登録不要・無料。",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f5f7fb",
+  "theme_color": "#285fbb",
+  "lang": "ja",
+  "icons": [
+    {
+      "src": "icons/app-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

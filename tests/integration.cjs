@@ -1,0 +1,62 @@
+const { chromium } = require('playwright');
+const fs = require('node:fs');
+const assert = require('node:assert/strict');
+const base = process.env.TEST_BASE_URL || 'http://127.0.0.1:8765';
+const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4////fwAJ+wP9kEQ+5gAAAABJRU5ErkJggg==','base64');
+(async()=>{
+ const browser=await chromium.launch({headless:true});
+ const context=await browser.newContext({acceptDownloads:true,viewport:{width:390,height:844}});
+ const page=await context.newPage(), errors=[];
+ page.on('pageerror',e=>errors.push(e.message));
+ try{
+  await page.goto(base+'/',{waitUntil:'load'});
+  assert.equal(await page.locator('nav.tool-nav a').count(),4);
+  await page.locator('a.tool[href="./receipt/"]').click();
+  await page.waitForURL('**/receipt/');
+  assert.equal(await page.locator('#downloadPdf').count(),1);
+  await page.fill('#recipient','確認用テスト');
+  await page.fill('#amount','17000');
+  await page.fill('#purpose','作業代金として');
+  await page.locator('#issuerTabBtn').click();
+  await page.fill('#issuerName','テスト事業者');
+  await page.locator('#receiptTabBtn').click();
+  const downloadPromise=page.waitForEvent('download');
+  await page.locator('#downloadPdf').click();
+  const download=await downloadPromise;
+  assert(download.suggestedFilename().endsWith('.pdf'));
+  const pdfBytes=fs.readFileSync(await download.path());
+  assert.equal(pdfBytes.subarray(0,4).toString(),'%PDF');
+  await page.locator('nav.tool-nav a[data-tool-link="calc"]').click();
+  await page.waitForURL('**/merchant-calculator/');
+  assert.equal(await page.locator('#heading').count(),1);
+  await page.locator('nav.tool-nav a[data-tool-link="receipt"]').click();
+  await page.waitForURL('**/receipt/');
+  assert.equal(await page.inputValue('#recipient'),'確認用テスト','Receipt draft should survive switching');
+
+  await page.locator('nav.tool-nav a[data-tool-link="photo"]').click();
+  await page.waitForURL('**/before-after-tsukurukun/');
+  await page.locator('#customerName').fill('写真保存テスト');
+  const before=page.locator('input[data-file="before"]').first();
+  const after=page.locator('input[data-file="after"]').first();
+  await before.setInputFiles({name:'before.png',mimeType:'image/png',buffer:png});
+  await after.setInputFiles({name:'after.png',mimeType:'image/png',buffer:png});
+  await page.waitForTimeout(1300);
+  await page.locator('nav.tool-nav a[data-tool-link="home"]').click();
+  await page.waitForURL(base+'/');
+  await page.locator('nav.tool-nav a[data-tool-link="photo"]').click();
+  await page.waitForURL('**/before-after-tsukurukun/');
+  await page.locator('#customerName').waitFor();
+  assert.equal(await page.inputValue('#customerName'),'写真保存テスト','Photo draft should survive navigation');
+  assert((await page.locator('img.photo').count())>=2,'Restored comparison images should remain visible');
+
+  await page.goto(base+'/settings/');
+  await page.fill('#business','テスト事業者');
+  await page.locator('#saveProfile').click();
+  assert((await page.locator('#status').innerText()).includes('保存しました'));
+  await page.locator('nav.tool-nav a[data-tool-link="receipt"]').click();
+  await page.waitForURL('**/receipt/');
+  assert.equal(await page.inputValue('#recipient'),'確認用テスト');
+  assert.equal(errors.length,0,'JS runtime errors: '+errors.join('; '));
+  console.log('PASS: unified home, receipt PDF and draft, calculator, photo photo-draft, common navigation, settings');
+ }finally{await browser.close()}
+})().catch(e=>{console.error(e);process.exit(1)});
