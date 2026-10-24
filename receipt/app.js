@@ -193,55 +193,55 @@ async function draw(data){
  };
  // A4 landscape, no surrounding border. Layout follows the supplied finished receipt.
  write('領　収　書',w/2,168,58,{bold:true,align:'center'});
- stroke(115,228,w-115,228,1.8);
+ stroke(115,216,w-115,216,1.8);
 
  const dateParts=String(data.issueDate||'').split('-');
  const issueDate=dateParts.length===3?'発行日: '+dateParts[0]+'年'+Number(dateParts[1])+'月'+Number(dateParts[2])+'日':'発行日: '+(data.issueDate||'');
- write(issueDate,w-128,325,33,{align:'right'});
- if(data.showNumber&&data.receiptNo)write('No. '+data.receiptNo,w-128,377,28,{align:'right'});
+ write(issueDate,w-82,300,33,{align:'right'});
+ if(data.showNumber&&data.receiptNo)write('No. '+data.receiptNo,w-82,357,28,{align:'right'});
 
  const recipient=String(data.recipient||'')+(data.suffix==='なし'?'':'　'+(data.suffix||'様'));
- write(recipient,158,328,39,{maxWidth:760});
+ write(recipient,158,308,39,{maxWidth:760});
  ctx.font='39px '+mincho;
  const recipientWidth=Math.min(760,ctx.measureText(recipient).width);
- stroke(156,354,156+Math.max(225,recipientWidth+12),354,1.5);
+ stroke(156,334,156+Math.max(225,recipientWidth+12),334,1.5);
 
  // The receipt total is always the amount actually received, including tax.
  const amountText='¥ '+T.total.toLocaleString('ja-JP');
  ctx.font='bold 80px '+mincho;
  const amountWidth=ctx.measureText(amountText).width;
  const amountLeft=(w-amountWidth)/2;
- write(amountText,w/2,546,80,{bold:true,align:'center'});
- write(Number(data.rate)===0&&!data.mixed?'（非課税）':'（税込）',amountLeft+amountWidth+20,535,24,{maxWidth:150});
- stroke(amountLeft-12,578,amountLeft+amountWidth+12,578,2);
+ write(amountText,w/2,515,80,{bold:true,align:'center'});
+ write(Number(data.rate)===0&&!data.mixed?'（非課税）':'（税込）',amountLeft+amountWidth+20,504,24,{maxWidth:150});
+ stroke(amountLeft-12,543,amountLeft+amountWidth+12,543,2);
 
  // Description and settlement confirmation: lower-left column.
  const left=434,leftWidth=605;
- write('但し　'+data.purpose,left,713,31,{maxWidth:leftWidth});
- write('上記正に領収いたしました。',left,779,31);
+ write('但し　'+data.purpose,left,670,31,{maxWidth:leftWidth});
+ write('上記正に領収いたしました。',left,733,31);
  if(data.showTaxDetail){
   if(data.mixed){
-   write('税抜金額',left,864,28);
-   write(yen(T.base),730,864,28);
+   write('税抜金額',left,808,28);
+   write(yen(T.base),730,808,28);
    const taxLines=String(T.lines||'');
    const lines=Array.isArray(T.lines)?T.lines:[];
-   lines.slice(0,3).forEach((line,i)=>write(line,left,913+36*i,25,{maxWidth:670}));
+   lines.slice(0,3).forEach((line,i)=>write(line,left,859+36*i,25,{maxWidth:670}));
   }else if(Number(data.rate)===0){
-   write('非課税',left,867,28);
+   write('非課税',left,808,28);
   }else{
-   write('税抜金額',left,864,29);
-   write(yen(T.base),725,864,29);
-   write(data.rate+'% 消費税',left,921,29);
-   write(yen(T.tax),725,921,29);
+   write('税抜金額',left,808,29);
+   write(yen(T.base),725,808,29);
+   write(data.rate+'% 消費税',left,864,29);
+   write(yen(T.tax),725,864,29);
   }
  }
- if(data.payment)write('支払方法: '+(data.payment==='オンライン決済'?'オンラインカード決済':data.payment),left,978,24,{maxWidth:670});
- if(data.notes)wrap(ctx,'備考: '+data.notes,left,1040,635,32,2);
+ if(data.payment)write('支払方法: '+(data.payment==='オンライン決済'?'オンラインカード決済':data.payment),left,data.mixed?986:929,24,{maxWidth:670});
+ if(data.notes)wrap(ctx,'備考: '+data.notes,left,data.mixed?1080:1011,635,32,2);
 
  // Issuer and seal sit at the lower right of the document, without a horizontal rule.
  const issuerLines=String(data.issuerText||'').split(/\n/).map(v=>v.trim()).filter(Boolean).slice(0,6);
- const issuerX=1100,issuerY=945;
- const issuerLineHeight=52;
+ const issuerX=1100,issuerY=900;
+ const issuerLineHeight=47;
  issuerLines.forEach((line,i)=>{
   const baseY=issuerY+i*issuerLineHeight;
   if(baseY>1118)return;
@@ -255,14 +255,14 @@ async function draw(data){
  }
  if(data.revenueStamp){
   ctx.strokeStyle='#222';ctx.lineWidth=1.3;
-  ctx.strokeRect(1360,625,177,147);
-  write('収入印紙',1448,672,25,{align:'center'});
+  ctx.strokeRect(1360,570,177,147);
+  write('収入印紙',1448,622,25,{align:'center'});
  }
  const stamp=await loadImage(data.stampData);
  if(stamp){
   const size=Math.round((Number(data.stampSize)||30)*3.65);
   // Prefer the space to the right of the issuer, as in the reference receipt.
-  const x=Math.min(w-size-97,1443),y=Math.min(h-size-60,954);
+  const x=Math.min(w-size-97,1443),y=Math.min(h-size-60,924);
   ctx.drawImage(stamp,x,y,size,size);
  }
  return canvas;
