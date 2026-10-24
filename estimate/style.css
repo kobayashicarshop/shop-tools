@@ -13,3 +13,4 @@
 #previewPages canvas{display:block;width:100%;height:auto;background:#fff;border:1px solid #e3e7ec;box-shadow:0 4px 18px #0001}
 #sealPreview[hidden]{display:none}
 @media(max-width:380px){.estimate-line{padding:11px}.estimate-line .line-fields{gap:8px}}
+.estimate-line .tax-rate-cell{grid-column:1/-1}
