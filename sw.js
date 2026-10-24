@@ -1,5 +1,5 @@
 /* Static shell only; never cache user data, generated PDFs or file uploads. */
-const CACHE='toolbox-shell-v7', ROOT=new URL('./',self.registration.scope);
+const CACHE='toolbox-shell-v8', ROOT=new URL('./',self.registration.scope);
 const CORE=['./','./index.html','./shared/shell.js','./shared/shell.css','./manifest.webmanifest','./icons/app-icon.svg','./merchant-calculator/','./merchant-calculator/app.js','./merchant-calculator/style.css','./receipt/','./receipt/app.js','./receipt/style.css','./estimate/','./estimate/app.js','./estimate/style.css','./before-after-tsukurukun/'];
 self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(async c=>{for(const p of CORE){try{await c.add(new Request(new URL(p,ROOT),{cache:'reload'}))}catch(_){/* Missing files on first deployment are tolerated */}}})));
 self.addEventListener('activate',e=>e.waitUntil((async()=>{for(const k of await caches.keys())if(k.startsWith('toolbox-shell-')&&k!==CACHE)await caches.delete(k);await self.clients.claim()})()));
