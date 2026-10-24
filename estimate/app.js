@@ -1,17 +1,18 @@
 (()=>{'use strict';
 const $=id=>document.getElementById(id);
 const DRAFT='estimate_worktools_draft_v1',TEMPLATES='estimate_worktools_templates_v1',HISTORY='estimate_worktools_history_v1',DB='estimate_worktools_pdfs_v1';
-const RECEIPT_ISSUER='receipt_unified_issuer_v2',PROFILE='worktools_profile_v1';
+const RECEIPT_ISSUER='receipt_unified_issuer_v2',PROFILE='worktools_profile_v1',TAX_DISPLAY='estimate_worktools_tax_display_v1';
 const today=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
 const newLine=()=>({description:'',quantity:'1',unit:'式',unitPrice:'',rate:'10'});
-const fresh=()=>({quoteDate:today(),showNumber:false,quoteNo:'',recipient:'',suffix:'様',subject:'',validUntil:'',notes:'',issuerText:'',stampData:'',showSeal:true,items:[newLine()]});
+const fresh=()=>({quoteDate:today(),showNumber:false,quoteNo:'',recipient:'',suffix:'様',subject:'',validUntil:'',notes:'',issuerText:'',stampData:'',showSeal:true,showTaxDetails:taxDisplayPreference,items:[newLine()]});
 const load=(key,fallback)=>{try{return JSON.parse(localStorage.getItem(key)||'null')??fallback}catch(_){return fallback}};
 const save=(key,value)=>localStorage.setItem(key,JSON.stringify(value));
-let state={...fresh(),...load(DRAFT,{})},templates=load(TEMPLATES,[]),history=load(HISTORY,[]);
+let taxDisplayPreference=load(TAX_DISPLAY,false)===true;
+let state={...fresh(),...load(DRAFT,{}),showTaxDetails:taxDisplayPreference},templates=load(TEMPLATES,[]),history=load(HISTORY,[]);
 if(!Array.isArray(state.items)||!state.items.length)state.items=[newLine()];
 let screen='home',snapshot=null,busy=false,toastTimer=null;
-const basic=['quoteDate','showNumber','quoteNo','recipient','suffix','subject','validUntil','notes','issuerText','showSeal'];
-const checks=new Set(['showNumber','showSeal']);
+const basic=['quoteDate','showNumber','quoteNo','recipient','suffix','subject','validUntil','notes','issuerText','showSeal','showTaxDetails'];
+const checks=new Set(['showNumber','showSeal','showTaxDetails']);
 const esc=s=>String(s??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
 const yen=n=>'¥'+Math.round(n).toLocaleString('ja-JP');
 function note(s){const el=$('toast');el.textContent=s;el.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('show'),3300)}
@@ -34,6 +35,7 @@ function show(name){
 $('back').onclick=()=>show(screen==='preview'?'edit':'home');
 document.addEventListener('click',event=>{const button=event.target.closest('[data-go]');if(button){event.preventDefault();show(button.dataset.go)}});
 function fill(){
+ state.showTaxDetails=taxDisplayPreference;
  for(const id of basic)$(id)[checks.has(id)?'checked':'value']=state[id]??(checks.has(id)?false:'');
  $('numberField').hidden=!state.showNumber;
  $('sealStatus').textContent=state.stampData?'設定済み':'未設定';
@@ -71,12 +73,24 @@ function renderItems(){
 function calcLine(l){const q=Number(l.quantity),p=Number(l.unitPrice);return Number.isFinite(q)&&Number.isFinite(p)&&q>0&&p>=0?Math.round(q*p):0}
 function updateTotal(){
  const c=calc();$('liveTotal').textContent=yen(c.total);
+ $('liveTotalLabel').textContent=state.showTaxDetails?'見積合計（税込）':'見積合計';
  for(const element of $('items').querySelectorAll('.estimate-line')){
   const index=Number(element.dataset.index),sum=element.querySelector('.line-sum');
   sum.textContent='金額：'+yen(calcLine(state.items[index]));
  }
 }
-for(const id of basic){$(id).addEventListener('input',()=>{readInputs();$('numberField').hidden=!state.showNumber;persist()});$(id).addEventListener('change',()=>{readInputs();persist()})}
+for(const id of basic){
+ $(id).addEventListener('input',()=>{readInputs();$('numberField').hidden=!state.showNumber;persist()});
+ $(id).addEventListener('change',()=>{
+  readInputs();
+  if(id==='showTaxDetails'){
+   taxDisplayPreference=state.showTaxDetails;
+   try{save(TAX_DISPLAY,taxDisplayPreference)}catch(error){console.error(error);note('設定を保存できませんでした')}
+  }
+  if(id==='showTaxDetails')updateTotal();
+  persist();
+ });
+}
 $('items').addEventListener('input',event=>{
  const field=event.target.dataset.field;
  if(!field)return;
@@ -174,13 +188,13 @@ async function makePages(data){
   t('品目・作業内容',120,708,25,{bold:true});
   t('数量',825,708,25,{align:'right',bold:true});
   t('単位',980,708,25,{align:'right',bold:true});
-  t('単価（税抜）',1250,708,24,{align:'right',bold:true});
-  t('金額（税抜）',1530,708,24,{align:'right',bold:true});
+  t(data.showTaxDetails?'単価（税抜）':'単価',1250,708,24,{align:'right',bold:true});
+  t(data.showTaxDetails?'金額（税抜）':'金額',1530,708,24,{align:'right',bold:true});
   const pageLines=c.lines.slice(p*per,(p+1)*per);
   pageLines.forEach((it,j)=>{
    const y=802+j*82;
    t(it.description,120,y,27,{maxWidth:610});
-   t(it.rate==='none'?'非課税':it.rate+'%',120,y+26,19,{color:'#8794a4'});
+   if(data.showTaxDetails)t(it.rate==='none'?'非課税':it.rate+'%',120,y+26,19,{color:'#8794a4'});
    t(Number(it.quantity).toLocaleString('ja-JP'),825,y,26,{align:'right'});
    t(it.unit,980,y,25,{align:'right'});
    t(yen(Number(it.unitPrice)),1250,y,25,{align:'right'});
@@ -189,11 +203,15 @@ async function makePages(data){
   });
   if(p===all-1){
    const y=1645;line(y-17,100,1550,'#8291a3',2);
-   t('小計（税抜）',1010,y+31,28);t(yen(c.base),1530,y+31,29,{align:'right'});
-   t('10% 消費税',1010,y+84,25);t(yen(c.tax10),1530,y+84,27,{align:'right'});
-   t('8% 消費税',1010,y+137,25);t(yen(c.tax8),1530,y+137,27,{align:'right'});
-   line(y+165,995,1545,'#8291a3',2);
-   t('合計（税込）',1010,y+225,34,{bold:true});t(yen(c.total),1530,y+225,39,{bold:true,align:'right'});
+   if(data.showTaxDetails){
+    t('小計（税抜）',1010,y+31,28);t(yen(c.base),1530,y+31,29,{align:'right'});
+    t('10% 消費税',1010,y+84,25);t(yen(c.tax10),1530,y+84,27,{align:'right'});
+    t('8% 消費税',1010,y+137,25);t(yen(c.tax8),1530,y+137,27,{align:'right'});
+    line(y+165,995,1545,'#8291a3',2);
+    t('合計（税込）',1010,y+225,34,{bold:true});t(yen(c.total),1530,y+225,39,{bold:true,align:'right'});
+   }else{
+    t('合計金額',1010,y+69,34,{bold:true});t(yen(c.total),1530,y+69,39,{bold:true,align:'right'});
+   }
    if(data.notes){
     t('備考・施工条件',108,1694,27,{bold:true});
     const words=data.notes.replace(/\r/g,'').split('\n').slice(0,8);
@@ -287,10 +305,10 @@ function renderHistory(){
 }
 document.addEventListener('click',async event=>{
  const b=event.target.closest('[data-template],[data-remove-template],[data-history],[data-reuse],[data-remove-history]');if(!b)return;
- if(b.dataset.template){const t=templates.find(v=>v.id===b.dataset.template);if(t){state={...fresh(),...structuredClone(t.data),quoteDate:today(),recipient:''};show('edit');persist()}return}
+ if(b.dataset.template){const t=templates.find(v=>v.id===b.dataset.template);if(t){state={...fresh(),...structuredClone(t.data),quoteDate:today(),recipient:'',showTaxDetails:taxDisplayPreference};show('edit');persist()}return}
  if(b.dataset.removeTemplate){if(!confirm('テンプレートを削除しますか？'))return;templates=templates.filter(v=>v.id!==b.dataset.removeTemplate);save(TEMPLATES,templates);renderTemplates();return}
  const id=b.dataset.history||b.dataset.reuse||b.dataset.removeHistory,h=history.find(v=>v.id===id);if(!h)return;
- if(b.dataset.reuse){state={...fresh(),...structuredClone(h.data),quoteDate:today()};show('edit');persist();return}
+ if(b.dataset.reuse){state={...fresh(),...structuredClone(h.data),quoteDate:today(),showTaxDetails:taxDisplayPreference};show('edit');persist();return}
  if(b.dataset.removeHistory){if(!confirm('この履歴を削除しますか？'))return;history=history.filter(v=>v.id!==id);save(HISTORY,history);await dbOperation('readwrite',id);renderHistory();return}
  try{const blob=await dbOperation('readonly',id);if(blob)download(blob,fileName(h.data));else note('PDFファイルが見つかりません。再作成をご利用ください')}catch(error){note('履歴PDFを読み込めませんでした')}
 });

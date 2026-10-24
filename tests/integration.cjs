@@ -75,6 +75,7 @@ const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQ
   const before=page.locator('input[data-file="before"]').first();
   const after=page.locator('input[data-file="after"]').first();
   await before.setInputFiles({name:'before.png',mimeType:'image/png',buffer:png});
+  await page.waitForFunction(()=>document.querySelectorAll('img.photo').length>=1);
   await after.setInputFiles({name:'after.png',mimeType:'image/png',buffer:png});
   await page.waitForFunction(()=>document.querySelectorAll('img.photo').length>=2);
   await page.waitForFunction(()=>document.querySelector('#saveStatus')?.textContent.includes('保存済み'));
@@ -91,6 +92,7 @@ const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQ
   await page.goto(base+'/estimate/');
   assert.equal(await page.locator('#s-home .big-btn').count(),3,'Quotation home has create, templates, history');
   await page.locator('#s-home button[data-go="edit"]').click();
+  assert.equal(await page.locator('#showTaxDetails').isChecked(),false,'Tax breakdown must default to hidden');
   await page.fill('#recipient','見積テスト宛先');
   await page.fill('#subject','機器取付見積もり');
   await page.fill('#issuerText','テスト事業者');
@@ -105,6 +107,32 @@ const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQ
   await page.locator('#create').click();
   await page.locator('#s-preview.active').waitFor();
   assert.equal(await page.locator('#previewPages canvas').count(),1);
+  const sampleTaxRegion=async()=>page.locator('#previewPages canvas').evaluate(canvas=>{
+    const pixels=canvas.getContext('2d').getImageData(1000,1740,550,95).data;
+    let dark=0;
+    for(let i=0;i<pixels.length;i+=4)if(pixels[i]<140&&pixels[i+1]<140&&pixels[i+2]<140)dark++;
+    return dark;
+  });
+  const defaultInk=await sampleTaxRegion();
+  assert(defaultInk<25,'No tax rows or divider visible when tax display is off');
+  await page.locator('#back').click();
+  await page.locator('label.switch:has(#showTaxDetails)').click();
+  assert.equal(await page.locator('#showTaxDetails').isChecked(),true);
+  assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('estimate_worktools_tax_display_v1'))),true,'Remember ON preference');
+  await page.locator('#create').click();
+  await page.locator('#s-preview.active').waitFor();
+  const enabledInk=await sampleTaxRegion();
+  assert(enabledInk>defaultInk+150,'Tax breakdown should be visible on PDF when enabled');
+  await page.locator('#back').click();
+  await page.locator('label.switch:has(#showTaxDetails)').click();
+  assert.equal(await page.locator('#showTaxDetails').isChecked(),false);
+  assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('estimate_worktools_tax_display_v1'))),false,'Remember OFF preference');
+  await page.reload();
+  await page.locator('#s-home button[data-go="edit"]').click();
+  assert.equal(await page.locator('#showTaxDetails').isChecked(),false,'Display preference survives reload');
+  assert.equal(await page.inputValue('#recipient'),'見積テスト宛先','Draft survives page reload');
+  await page.locator('#create').click();
+  await page.locator('#s-preview.active').waitFor();
   const quoteDownloadPromise=page.waitForEvent('download');
   await page.locator('#downloadPdf').click();
   const quoteDownload=await quoteDownloadPromise;
@@ -118,15 +146,24 @@ const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQ
   await page.locator('#back').click();
   await page.locator('#s-home button[data-go="edit"]').click();
   assert.equal(await page.inputValue('#recipient'),'見積テスト宛先','Quotation draft survives navigation');
+  assert.equal(await page.locator('#showTaxDetails').isChecked(),false,'Tax preference remains OFF across navigation');
   page.once('dialog',dialog=>dialog.accept('定番のお見積り'));
   await page.locator('#saveTemplate').click();
+  page.once('dialog',dialog=>dialog.accept());
+  await page.locator('#clearDraft').click();
+  assert.equal(await page.locator('#showTaxDetails').isChecked(),false,'New quote inherits display preference');
   await page.locator('#back').click();
   await page.locator('#s-home button[data-go="templates"]').click();
   assert.equal(await page.locator('#templateList .item').count(),1);
   await page.locator('#back').click();
   await page.locator('#s-home button[data-go="edit"]').click();
-  // Ten items per page; long quotations must remain multi-page rather than clipping.
-  for(let j=0;j<9;j++){
+  await page.fill('#recipient','複数ページ見積テスト');
+  await page.fill('#issuerText','テスト事業者');
+  // After a new quote, refill its cleared first row before testing pagination.
+  await page.locator('.estimate-line').first().locator('[data-field="description"]').fill('基礎作業');
+  await page.locator('.estimate-line').first().locator('[data-field="unitPrice"]').fill('1000');
+  // Ten items per page; 11 line items must remain multi-page rather than clipping.
+  for(let j=0;j<10;j++){
     await page.locator('#addItem').click();
     const item=page.locator('.estimate-line').last();
     await item.locator('[data-field="description"]').fill('追加工事項目 '+(j+1));
