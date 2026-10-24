@@ -1,0 +1,52 @@
+<!doctype html><html lang="ja"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0787f8"><meta name="description" content="明細を入力するだけで見積書PDFを無料作成。登録不要・広告なし。">
+<link rel="manifest" href="../manifest.webmanifest"><link rel="stylesheet" href="../receipt/style.css"><link rel="stylesheet" href="./style.css">
+<title>見積書作成 | 仕事の便利ツール</title></head><body>
+<header class="top"><button id="back" class="back" type="button" hidden>戻る</button><strong id="screenTitle">見積書作成</strong></header>
+<section class="screen active" id="s-home"><div class="home-wrap">
+<div class="hero-icon" aria-hidden="true"><svg viewBox="0 0 64 72"><rect x="9" y="4" width="46" height="64" rx="3"/><path d="M20 21h24M20 32h24M20 43h16M20 54h24"/></svg></div>
+<p class="hero-title">明細を入力して、PDFで保存。</p><p class="hero-sub">無料・アカウント登録不要</p>
+<button type="button" class="big-btn primary" data-go="edit">見積書を作成</button>
+<button type="button" class="big-btn" data-go="templates">テンプレートから作成</button>
+<button type="button" class="big-btn" data-go="history">履歴から作成</button>
+<p class="smallnote">作成途中の内容・テンプレート・履歴は<br>この端末のブラウザ内に保存されます。</p>
+</div></section>
+<section class="screen" id="s-edit"><main class="container edit">
+<div class="field"><label for="quoteDate">見積日</label><input id="quoteDate" class="input date" type="date"></div>
+<div class="toggle-row"><label for="showNumber">見積番号を記載する</label><label class="switch"><input id="showNumber" type="checkbox"><span></span></label></div>
+<div class="field" id="numberField" hidden><label for="quoteNo">見積番号</label><input class="input" id="quoteNo" maxlength="40" placeholder="例：Q-001"></div>
+<div class="field"><label for="recipient">宛名</label><div class="inline"><input id="recipient" class="input" maxlength="100" placeholder="〇〇株式会社"><select id="suffix" class="suffix" aria-label="敬称"><option>様</option><option>御中</option><option>なし</option></select></div></div>
+<div class="field"><label for="subject">件名・作業内容</label><input id="subject" class="input" maxlength="120" placeholder="例：機器取付作業のお見積もり"></div>
+<div class="field"><label for="validUntil">見積有効期限（任意）</label><input id="validUntil" class="input date" type="date"></div>
+<div class="field"><div class="field-title">見積明細</div>
+<p class="helper">単価は税抜で入力します。数量と税率から金額を自動計算します。</p>
+<div id="items" class="item-list"></div>
+<button type="button" id="addItem" class="action-btn outline">＋ 明細を追加</button>
+<div class="estimate-total"><span>見積合計（税込）</span><strong id="liveTotal">¥0</strong></div>
+</div>
+<div class="field"><label for="notes">備考・施工条件（任意）</label><textarea id="notes" class="textarea" maxlength="800" placeholder="例：駐車場所をご用意ください。"></textarea></div>
+<div class="field"><label for="issuerText">発行元</label><textarea id="issuerText" class="textarea" maxlength="450" placeholder="事業者名&#10;住所&#10;電話番号"></textarea>
+<p class="helper">領収書アプリに保存した発行元・角印を初期値として利用できます。</p>
+<button type="button" class="action-btn outline" id="useReceiptIssuer">領収書の発行元・角印を読み込む</button></div>
+<details class="details" id="sealSettings"><summary><b>角印（任意）</b><small id="sealStatus">未設定</small></summary><div class="details-inner">
+<div class="inline"><img id="sealPreview" class="thumb" alt="角印" hidden><label class="file-label">角印画像を選ぶ<input id="sealFile" type="file" accept="image/*"></label><button class="minor" type="button" id="removeSeal">削除</button></div>
+<div class="toggle-row tight"><label for="showSeal">見積書に角印を表示する</label><label class="switch"><input id="showSeal" type="checkbox" checked><span></span></label></div>
+</div></details>
+<button type="button" class="action-btn primary" id="create">見積書を作成</button>
+<button type="button" class="action-btn" id="saveTemplate">テンプレートとして保存</button>
+<button type="button" class="action-btn outline" id="clearDraft">新しい見積もりを始める</button>
+<p class="smallnote">完成イメージを確認してからPDFを保存できます。</p>
+</main></section>
+<section class="screen" id="s-preview"><div class="container edit">
+<p class="helper" style="text-align:center">完成イメージ・A4縦（明細が多い場合は複数ページ）</p>
+<div id="previewPages"></div>
+<button id="downloadPdf" class="action-btn primary" type="button">PDFを保存</button>
+<button class="action-btn outline" data-go="edit" type="button">入力内容を修正</button>
+<p class="smallnote">PDFを保存すると履歴にも登録します。</p>
+</div></section>
+<section class="screen" id="s-templates"><div class="container edit"><p class="helper">保存済みの明細・条件から新しい見積書を作れます。</p><div id="templateList"></div></div></section>
+<section class="screen" id="s-history"><div class="container edit"><p class="helper">作成済みPDFを保存・再作成できます（最大50件）。</p><div id="historyList"></div></div></section>
+<div id="toast" class="status-toast" role="status"></div>
+<script src="./app.js"></script><script src="../shared/shell.js"></script>
+</body></html>
