@@ -73,6 +73,13 @@ const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQ
   await page.fill('#business','テスト事業者');
   await page.locator('#saveProfile').click();
   assert((await page.locator('#status').innerText()).includes('保存しました'));
+  const backupDownload=page.waitForEvent('download');
+  await page.locator('#export').click();
+  const backupFile=await backupDownload;
+  const backup=JSON.parse(fs.readFileSync(await backupFile.path(),'utf8'));
+  assert.equal(backup.version,2,'Unified backup version 2');
+  assert(backup.receipt.history.length>=1,'Receipt history must be included in unified backup');
+  assert(Object.keys(backup.receiptPdfs).length>=1,'Actual receipt PDF blobs must be backed up');
   await page.locator('nav.tool-nav a[data-tool-link="receipt"]').click();
   await page.waitForURL('**/receipt/');
   await page.locator('#s-home button[data-go="edit"]').click();
