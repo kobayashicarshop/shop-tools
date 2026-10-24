@@ -12,7 +12,7 @@ if(!Array.isArray(state.items)||!state.items.length)state.items=[newLine()];
 let screen='home',snapshot=null,busy=false,toastTimer=null;
 const basic=['quoteDate','showNumber','quoteNo','recipient','suffix','subject','validUntil','notes','issuerText','showSeal'];
 const checks=new Set(['showNumber','showSeal']);
-const esc=s=>String(s??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;':'&quot;',"'":'&#39;'}[ch]));
+const esc=s=>String(s??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
 const yen=n=>'¥'+Math.round(n).toLocaleString('ja-JP');
 function note(s){const el=$('toast');el.textContent=s;el.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('show'),3300)}
 function readInputs(){
