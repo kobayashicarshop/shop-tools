@@ -75,6 +75,7 @@ const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQ
   const before=page.locator('input[data-file="before"]').first();
   const after=page.locator('input[data-file="after"]').first();
   await before.setInputFiles({name:'before.png',mimeType:'image/png',buffer:png});
+  await page.waitForFunction(()=>document.querySelectorAll('img.photo').length>=1);
   await after.setInputFiles({name:'after.png',mimeType:'image/png',buffer:png});
   await page.waitForFunction(()=>document.querySelectorAll('img.photo').length>=2);
   await page.waitForFunction(()=>document.querySelector('#saveStatus')?.textContent.includes('保存済み'));
