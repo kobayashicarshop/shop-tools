@@ -20,7 +20,12 @@
 <div class="field"><label for="subject">件名・作業内容</label><input id="subject" class="input" maxlength="120" placeholder="例：機器取付作業のお見積もり"></div>
 <div class="field"><label for="validUntil">見積有効期限（任意）</label><input id="validUntil" class="input date" type="date"></div>
 <div class="field"><div class="field-title">見積明細</div>
-<p class="helper">単価は税抜で入力します。数量と税率から金額を自動計算します。</p>
+<div class="field-title" style="font-size:15px;margin:17px 0 8px">単価の入力方法</div>
+<div class="segmented" role="radiogroup" aria-label="単価の入力方法" id="priceModePicker">
+<label><input type="radio" name="priceMode" value="incl"><span>税込で入力</span></label>
+<label><input type="radio" name="priceMode" value="excl"><span>税抜で入力</span></label>
+</div>
+<p id="priceHelp" class="helper">税込で入力：入力した単価×数量が見積金額になります。初期設定は税込です。</p>
 <div id="items" class="item-list"></div>
 <button type="button" id="addItem" class="action-btn outline">＋ 明細を追加</button>
 <div class="estimate-total"><span id="liveTotalLabel">見積合計</span><strong id="liveTotal">¥0</strong></div>
