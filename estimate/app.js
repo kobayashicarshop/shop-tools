@@ -1,15 +1,23 @@
 (()=>{'use strict';
 const $=id=>document.getElementById(id);
 const DRAFT='estimate_worktools_draft_v1',TEMPLATES='estimate_worktools_templates_v1',HISTORY='estimate_worktools_history_v1',DB='estimate_worktools_pdfs_v1';
-const RECEIPT_ISSUER='receipt_unified_issuer_v2',PROFILE='worktools_profile_v1',TAX_DISPLAY='estimate_worktools_tax_display_v1';
+const RECEIPT_ISSUER='receipt_unified_issuer_v2',PROFILE='worktools_profile_v1',TAX_DISPLAY='estimate_worktools_tax_display_v1',PRICE_MODE='estimate_worktools_price_mode_v1';
 const today=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
-const newLine=()=>({description:'',quantity:'1',unit:'式',unitPrice:'',rate:'10'});
-const fresh=()=>({quoteDate:today(),showNumber:false,quoteNo:'',recipient:'',suffix:'様',subject:'',validUntil:'',notes:'',issuerText:'',stampData:'',showSeal:true,showTaxDetails:taxDisplayPreference,items:[newLine()]});
+const newLine=()=>({description:'',quantity:'1',unitPrice:'',rate:'10'});
+const fresh=()=>({quoteDate:today(),showNumber:false,quoteNo:'',recipient:'',suffix:'様',subject:'',validUntil:'',notes:'',issuerText:'',stampData:'',showSeal:true,showTaxDetails:taxDisplayPreference,priceMode:priceModePreference,items:[newLine()]});
 const load=(key,fallback)=>{try{return JSON.parse(localStorage.getItem(key)||'null')??fallback}catch(_){return fallback}};
 const save=(key,value)=>localStorage.setItem(key,JSON.stringify(value));
 let taxDisplayPreference=load(TAX_DISPLAY,false)===true;
-let state={...fresh(),...load(DRAFT,{}),showTaxDetails:taxDisplayPreference},templates=load(TEMPLATES,[]),history=load(HISTORY,[]);
-if(!Array.isArray(state.items)||!state.items.length)state.items=[newLine()];
+let priceModePreference=load(PRICE_MODE,'incl')==='excl'?'excl':'incl';
+// Older drafts and templates used tax-exclusive unit prices; retain their meaning.
+function documentPriceMode(doc){
+ if(doc?.priceMode==='incl'||doc?.priceMode==='excl')return doc.priceMode;
+ return Array.isArray(doc?.items)&&doc.items.some(x=>x.unitPrice!==''&&x.unitPrice!=null)?'excl':priceModePreference;
+}
+function normalizedItems(items){return Array.isArray(items)&&items.length?items.map(({unit,...item})=>({...newLine(),...item})):[newLine()]}
+const storedDraft=load(DRAFT,null);
+let state={...fresh(),...(storedDraft||{}),showTaxDetails:taxDisplayPreference,priceMode:storedDraft?documentPriceMode(storedDraft):priceModePreference},templates=load(TEMPLATES,[]),history=load(HISTORY,[]);
+state.items=normalizedItems(state.items);
 let screen='home',snapshot=null,busy=false,toastTimer=null;
 const basic=['quoteDate','showNumber','quoteNo','recipient','suffix','subject','validUntil','notes','issuerText','showSeal','showTaxDetails'];
 const checks=new Set(['showNumber','showSeal','showTaxDetails']);
@@ -18,6 +26,7 @@ const yen=n=>'¥'+Math.round(n).toLocaleString('ja-JP');
 function note(s){const el=$('toast');el.textContent=s;el.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('show'),3300)}
 function readInputs(){
  for(const id of basic){const element=$(id);state[id]=checks.has(id)?element.checked:element.value}
+ state.priceMode=document.querySelector('input[name="priceMode"]:checked')?.value||state.priceMode;
  return state;
 }
 function persist(){try{save(DRAFT,readInputs())}catch(error){console.error(error);note('端末に保存できませんでした')}}
@@ -36,6 +45,9 @@ $('back').onclick=()=>show(screen==='preview'?'edit':'home');
 document.addEventListener('click',event=>{const button=event.target.closest('[data-go]');if(button){event.preventDefault();show(button.dataset.go)}});
 function fill(){
  state.showTaxDetails=taxDisplayPreference;
+ if(!['incl','excl'].includes(state.priceMode))state.priceMode=priceModePreference;
+ for(const input of document.querySelectorAll('input[name="priceMode"]'))input.checked=input.value===state.priceMode;
+ updatePriceModeHelp();
  for(const id of basic)$(id)[checks.has(id)?'checked':'value']=state[id]??(checks.has(id)?false:'');
  $('numberField').hidden=!state.showNumber;
  $('sealStatus').textContent=state.stampData?'設定済み':'未設定';
@@ -44,18 +56,26 @@ function fill(){
  renderItems();
 }
 function calc(data=state){
- const buckets={10:0,8:0,none:0};
- const lines=[];
+ const buckets={10:0,8:0,none:0},lines=[];
  for(const line of data.items){
-  const quantity=Number(line.quantity),price=Number(String(line.unitPrice).replace(/[,，]/g,''));
-  const amount=Number.isFinite(quantity)&&Number.isFinite(price)&&quantity>0&&price>=0?Math.round(quantity*price):0;
+  const q=Number(line.quantity),p=Number(String(line.unitPrice).replace(/[,，]/g,''));
+  const amount=Number.isFinite(q)&&Number.isFinite(p)&&q>0&&p>=0?Math.round(q*p):0;
   const rate=['10','8','none'].includes(String(line.rate))?String(line.rate):'10';
   buckets[rate]+=amount;
   lines.push({...line,amount,rate});
  }
- const base=buckets[10]+buckets[8]+buckets.none;
- const tax10=Math.floor(buckets[10]*.10),tax8=Math.floor(buckets[8]*.08);
- return {lines,base,tax10,tax8,total:base+tax10+tax8};
+ const inclusive=data.priceMode==='incl';
+ const tax10=inclusive?Math.floor(buckets[10]*10/110):Math.floor(buckets[10]*.10);
+ const tax8=inclusive?Math.floor(buckets[8]*8/108):Math.floor(buckets[8]*.08);
+ const entered=buckets[10]+buckets[8]+buckets.none;
+ const total=inclusive?entered:entered+tax10+tax8;
+ const base=inclusive?total-tax10-tax8:entered;
+ return {lines,base,tax10,tax8,total};
+}
+function updatePriceModeHelp(){
+ $('priceHelp').textContent=state.priceMode==='incl'
+ ?'税込入力：単価×数量が税込金額です。税額は税率別の合計から逆算します。'
+ :'税抜入力：単価×数量に税額を加算します。切り替えても入力金額は変えません。';
 }
 function renderItems(){
  $('items').innerHTML=state.items.map((line,index)=>
@@ -64,9 +84,8 @@ function renderItems(){
  '<label>品目・作業内容<input data-field="description" maxlength="110" placeholder="例：取付作業工賃" value="'+esc(line.description)+'"></label>'+
  '<div class="line-fields">'+
  '<label>数量<input data-field="quantity" type="number" min="0.01" step="0.01" max="99999" value="'+esc(line.quantity)+'"></label>'+
- '<label>単位<select data-field="unit">'+['式','無し','個','台','件','時間','m','回','セット','日','その他'].map(u=>'<option '+(u===line.unit?'selected':'')+'>'+u+'</option>').join('')+'</select></label>'+
- '<label>単価（税抜・円）<input data-field="unitPrice" type="number" min="0" step="1" max="999999999" inputmode="numeric" placeholder="10000" value="'+esc(line.unitPrice)+'"></label>'+
- '<label>消費税<select data-field="rate">'+[['10','10%'],['8','8%'],['none','非課税']].map(([v,n])=>'<option value="'+v+'" '+(v===(line.rate||'10')?'selected':'')+'>'+n+'</option>').join('')+'</select></label>'+
+ '<label>単価（'+(state.priceMode==='incl'?'税込':'税抜')+'・円）<input data-field="unitPrice" type="number" min="0" step="1" max="999999999" inputmode="numeric" placeholder="10000" value="'+esc(line.unitPrice)+'"></label>'+
+ '<label class="tax-rate-cell">消費税<select data-field="rate">'+[['10','10%'],['8','8%'],['none','非課税']].map(([v,n])=>'<option value="'+v+'" '+(v===(line.rate||'10')?'selected':'')+'>'+n+'</option>').join('')+'</select></label>'+
  '</div><div class="line-sum">金額：'+yen(calcLine(line))+'</div></div>').join('');
  updateTotal();
 }
@@ -79,6 +98,12 @@ function updateTotal(){
   sum.textContent='金額：'+yen(calcLine(state.items[index]));
  }
 }
+document.querySelectorAll('input[name="priceMode"]').forEach(input=>input.addEventListener('change',()=>{
+ if(!input.checked)return;
+ state.priceMode=input.value;priceModePreference=input.value;
+ try{save(PRICE_MODE,priceModePreference)}catch(error){console.error(error);note('設定を保存できませんでした')}
+ updatePriceModeHelp();renderItems();persist();
+}));
 for(const id of basic){
  $(id).addEventListener('input',()=>{readInputs();$('numberField').hidden=!state.showNumber;persist()});
  $(id).addEventListener('change',()=>{
@@ -186,18 +211,16 @@ async function makePages(data){
   }
   const head=665;ctx.fillStyle='#ecf3fa';ctx.fillRect(98,head,1456,63);
   t('品目・作業内容',120,708,25,{bold:true});
-  t('数量',825,708,25,{align:'right',bold:true});
-  t('単位',980,708,25,{align:'right',bold:true});
-  t(data.showTaxDetails?'単価（税抜）':'単価',1250,708,24,{align:'right',bold:true});
-  t(data.showTaxDetails?'金額（税抜）':'金額',1530,708,24,{align:'right',bold:true});
+  t('数量',990,708,25,{align:'right',bold:true});
+  t(data.showTaxDetails?(data.priceMode==='incl'?'単価（税込）':'単価（税抜）'):'単価',1265,708,24,{align:'right',bold:true});
+  t(data.showTaxDetails?(data.priceMode==='incl'?'金額（税込）':'金額（税抜）'):'金額',1530,708,24,{align:'right',bold:true});
   const pageLines=c.lines.slice(p*per,(p+1)*per);
   pageLines.forEach((it,j)=>{
    const y=802+j*82;
-   t(it.description,120,y,27,{maxWidth:610});
+   t(it.description,120,y,27,{maxWidth:760});
    if(data.showTaxDetails)t(it.rate==='none'?'非課税':it.rate+'%',120,y+26,19,{color:'#8794a4'});
-   t(Number(it.quantity).toLocaleString('ja-JP'),825,y,26,{align:'right'});
-   if(it.unit&&it.unit!=='無し')t(it.unit,980,y,25,{align:'right'});
-   t(yen(Number(it.unitPrice)),1250,y,25,{align:'right'});
+   t(Number(it.quantity).toLocaleString('ja-JP'),990,y,26,{align:'right'});
+   t(yen(Number(it.unitPrice)),1265,y,25,{align:'right'});
    t(yen(it.amount),1530,y,25,{align:'right'});
    line(y+34,105,1550);
   });
@@ -305,10 +328,10 @@ function renderHistory(){
 }
 document.addEventListener('click',async event=>{
  const b=event.target.closest('[data-template],[data-remove-template],[data-history],[data-reuse],[data-remove-history]');if(!b)return;
- if(b.dataset.template){const t=templates.find(v=>v.id===b.dataset.template);if(t){state={...fresh(),...structuredClone(t.data),quoteDate:today(),recipient:'',showTaxDetails:taxDisplayPreference};show('edit');persist()}return}
+ if(b.dataset.template){const t=templates.find(v=>v.id===b.dataset.template);if(t){state={...fresh(),...structuredClone(t.data),priceMode:documentPriceMode(t.data),items:normalizedItems(t.data.items),quoteDate:today(),recipient:'',showTaxDetails:taxDisplayPreference};show('edit');persist()}return}
  if(b.dataset.removeTemplate){if(!confirm('テンプレートを削除しますか？'))return;templates=templates.filter(v=>v.id!==b.dataset.removeTemplate);save(TEMPLATES,templates);renderTemplates();return}
  const id=b.dataset.history||b.dataset.reuse||b.dataset.removeHistory,h=history.find(v=>v.id===id);if(!h)return;
- if(b.dataset.reuse){state={...fresh(),...structuredClone(h.data),quoteDate:today(),showTaxDetails:taxDisplayPreference};show('edit');persist();return}
+ if(b.dataset.reuse){state={...fresh(),...structuredClone(h.data),priceMode:documentPriceMode(h.data),items:normalizedItems(h.data.items),quoteDate:today(),showTaxDetails:taxDisplayPreference};show('edit');persist();return}
  if(b.dataset.removeHistory){if(!confirm('この履歴を削除しますか？'))return;history=history.filter(v=>v.id!==id);save(HISTORY,history);await dbOperation('readwrite',id);renderHistory();return}
  try{const blob=await dbOperation('readonly',id);if(blob)download(blob,fileName(h.data));else note('PDFファイルが見つかりません。再作成をご利用ください')}catch(error){note('履歴PDFを読み込めませんでした')}
 });
