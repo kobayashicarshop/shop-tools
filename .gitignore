@@ -1,0 +1,20 @@
+# Generated builds and local dependencies
+/dist/
+/node_modules/
+/.wrangler/
+
+# Local configuration and credentials must never enter Git.
+.env
+.env.*
+.dev.vars
+.dev.vars.*
+private/
+credentials/
+.credentials*
+*credentials*.json
+*service-account*.json
+*service_account*.json
+*.pem
+*.key
+*.p12
+*.pfx

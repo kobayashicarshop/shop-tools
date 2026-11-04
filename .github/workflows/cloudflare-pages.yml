@@ -1,0 +1,66 @@
+name: Cloudflare Pages compatibility
+
+on:
+  push:
+    branches: [main, cloudflare/pages-preparation]
+  pull_request:
+    paths:
+      - '.github/workflows/cloudflare-pages.yml'
+      - 'scripts/**'
+      - 'tests/**'
+      - 'index.html'
+      - 'receipt/**'
+      - 'estimate/**'
+      - 'merchant-calculator/**'
+      - 'before-after-tsukurukun/**'
+      - 'shared/**'
+      - 'settings/**'
+      - 'icons/**'
+      - 'manifest.webmanifest'
+      - 'sw.js'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cloudflare-checks-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  static-pages:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Check deployment files, paths and cache revision
+        run: node --test tests/cloudflare-build.test.mjs
+      - name: Build static Pages output
+        run: node scripts/build-cloudflare.mjs
+      - name: Install existing browser test dependencies
+        run: |
+          npm install --no-save --package-lock=false --ignore-scripts playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Check both URL paths and backup migration between origins
+        run: |
+          mkdir -p /tmp/shop-tools-path-test/shop-tools
+          cp -a dist/. /tmp/shop-tools-path-test/shop-tools/
+          python -m http.server 8765 --bind 127.0.0.1 --directory dist > /tmp/shop-tools-root.log 2>&1 &
+          ROOT_PID=$!
+          python -m http.server 8766 --bind 127.0.0.1 --directory dist > /tmp/shop-tools-migration.log 2>&1 &
+          MIGRATION_PID=$!
+          python -m http.server 8767 --bind 127.0.0.1 --directory /tmp/shop-tools-path-test > /tmp/shop-tools-path.log 2>&1 &
+          PATH_PID=$!
+          trap 'kill "$ROOT_PID" "$MIGRATION_PID" "$PATH_PID" || true' EXIT
+          curl --retry 10 --retry-connrefused --retry-delay 1 --fail --silent http://127.0.0.1:8765/ > /dev/null
+          curl --retry 10 --retry-connrefused --retry-delay 1 --fail --silent http://127.0.0.1:8766/ > /dev/null
+          curl --retry 10 --retry-connrefused --retry-delay 1 --fail --silent http://127.0.0.1:8767/shop-tools/ > /dev/null
+          node tests/integration.cjs
+          TEST_BASE_URL=http://127.0.0.1:8767/shop-tools node tests/integration.cjs
+          node tests/cloudflare-migration.cjs
