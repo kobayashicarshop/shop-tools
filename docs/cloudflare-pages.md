@@ -1,5 +1,42 @@
 # Cloudflare Pagesへの並行公開
 
+## 比較公開の実績（2026-11-04）
+
+Cloudflareの画面で初回デプロイの成功を確認し、安定URLに対するHTTP検証を実施しました。
+
+| 項目 | 確認した値 |
+| --- | --- |
+| 比較公開の安定URL | <https://shop-tools-854.pages.dev/> |
+| 初回デプロイの固定URL（Cloudflare画面の記録） | <https://766cf129.shop-tools-854.pages.dev/> |
+| Cloudflareプロジェクト名 | `shop-tools` |
+| GitHub連携先 | `kobayashicarshop/shop-tools` |
+| 初回公開コミット | `05947e0` |
+| Production branch | `cloudflare/pages-preparation` |
+| 自動デプロイ | 有効（Cloudflare画面で確認） |
+| Preview branch | `None`（比較期間中のみ。未対応ブランチのビルド失敗を避けるため。Productionの自動デプロイは有効） |
+| Build command | `node scripts/build-cloudflare.mjs` |
+| Build output directory | `dist` |
+| Root directory | 空欄 |
+| Environment variables / Secrets | なし |
+
+この記録時点では[PR #9](https://github.com/kobayashicarshop/shop-tools/pull/9)は未マージです。
+現在は作業ブランチの更新がCloudflareへ自動反映されます。比較確認後に利用を判断し、`main`へのマージとCloudflareの更新元変更を行います。
+GitHub Pagesの設定は維持し、既存URLのHTTP 200応答も再確認しました。
+
+安定URLでのHTTP検証結果は以下のとおりです。初回固定URLは今回の接続でTLS接続に失敗し、原因は未確定です。固定URLの表記はCloudflare画面の記録とし、利用確認は正常に接続できる安定URLを対象にしています。
+
+- 公開対象18ファイルがすべてHTTP 200で取得でき、HTML・CSS・JavaScript・SVG・manifestのContent-Typeが適切でした。
+- 18ファイルの本文が、初回公開コミットのGitデータから計算したビルド結果とバイト単位で一致しました。Windowsのローカル生成物にはCRLF/LFの改行差と、それに由来するキャッシュ名の差がありますが、アプリの内容差はありません。
+- 公開中のService Workerのキャッシュ名は`toolbox-shell-cf-2170e9779b6de873`で、Gitデータから再計算した内容ハッシュと一致しました。
+- 18ファイルすべてで`X-Robots-Tag: noindex`、`X-Content-Type-Options: nosniff`、`Referrer-Policy: no-referrer`を確認し、`sw.js`で`Cache-Control: no-cache`を確認しました。
+- ルートと5ツールの`index.html`は、それぞれ対応するディレクトリURLへHTTP 308で正規化されました。
+- 深い階層の存在しないURLはHTTP 404となり、生成した日本語404ページの本文と一致しました。
+- `_headers`・README・資料・ビルドスクリプト・テスト・`.env`・`.git/config`・認証情報の確認用パスはすべてHTTP 404でした。
+
+安定URLのブラウザー確認では、領収書・見積書・計算機・写真報告書・設定の5画面と共通ナビの表示、JavaScriptエラー0件を確認しました。
+計算機は標準設定で30,000円を入力し、手取り23,400円の表示を確認しました。
+Service Workerは本文の配信とキャッシュ名の内容ハッシュ一致まで確認しました。ブラウザー検証APIの制限により、Workerがactiveになった状態と更新後の切り替わりは未確認です。
+
 ## 調査結果と既存公開への影響
 
 2026-11-04、既存の `main`（`3a66c06`）を基点に調査しました。
@@ -118,7 +155,8 @@ CI用のPlaywrightは開発・テスト環境だけにインストールし、�
 - 更新デプロイ後に全タブを閉じて開き直し、新版のJS/CSSに切り替わる。保存済みデータは残る。
 - 最後に現在のGitHub Pages URLも引き続き利用できることを確認する。
 
-Cloudflare実アカウントでの作成、GitHub Appの承認、`pages.dev` の実URLでの確認が完了するまでは、公開完了とは扱いません。
+Cloudflare実アカウントでの作成・GitHub App連携・初回デプロイ・安定URLの静的HTTP確認は完了しました。
+公開後の機能確認と実データの移行判断は、上記の確認項目に沿って行ってください。
 
 ## 無料枠
 
