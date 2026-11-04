@@ -22,6 +22,16 @@ const PUBLIC_FILES = [
   'merchant-calculator/app.js',
   'merchant-calculator/manifest.webmanifest',
   'before-after-tsukurukun/index.html',
+  'inventory/index.html',
+  'inventory/app.js',
+  'inventory/style.css',
+  'inventory/store.js',
+  'inventory/scanner.js',
+  'inventory/vendor/zxing-browser-0.2.1.min.js',
+  'inventory/vendor/zxing-library-0.23.0.min.js',
+  'inventory/vendor/ZXING-BROWSER-LICENSE.txt',
+  'inventory/vendor/ZXING-LIBRARY-LICENSE.txt',
+  'inventory/vendor/TS-CUSTOM-ERROR-LICENSE.txt',
   'settings/index.html',
 ];
 

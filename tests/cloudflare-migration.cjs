@@ -19,6 +19,7 @@ const receiptDraft = '領収書下書き・架空の宛先';
 const estimateRecipient = '見積書PDF・架空の宛先';
 const estimateDraft = '見積書下書き・架空の宛先';
 const photoCustomer = '写真報告書・架空のお客様';
+const legacyRating = [1, 2, 3, 4, 25];
 
 function watchPrivacy(page, base, violations, errors) {
   page.on('pageerror', error => errors.push(error.message));
@@ -30,7 +31,7 @@ function watchPrivacy(page, base, violations, errors) {
     const relative = url.pathname.startsWith(base.pathname) ? url.pathname.slice(base.pathname.length) : null;
     const staticPath = relative !== null && (
       relative === '' ||
-      /^(receipt|estimate|merchant-calculator|before-after-tsukurukun|settings)\/$/.test(relative) ||
+      /^(receipt|estimate|merchant-calculator|before-after-tsukurukun|inventory|settings)\/$/.test(relative) ||
       /^(?:[a-z0-9-]+\/)*(?:[a-z0-9.-]+\.(?:html|css|js|svg|webmanifest|ico))$/i.test(relative)
     );
     // The existing calculator uses a fixed asset version query string.
@@ -59,7 +60,7 @@ async function exportBackup(page) {
   const bytes = await downloadedBytes(page, () => page.locator('#export').click());
   const payload = JSON.parse(bytes.toString('utf8'));
   assert.equal(payload.type, 'worktools_backup');
-  assert.equal(payload.version, 3);
+  assert.equal(payload.version, 4);
   return { bytes, payload };
 }
 
@@ -78,7 +79,7 @@ const withoutExportTime = payload => {
   watchPrivacy(oldPage, source, violations, errors);
   watchPrivacy(newPage, target, violations, errors);
   try {
-    // Create all source data through the existing UI.
+    // Create ordinary source data through the UI; seed the hidden legacy rating below.
     await oldPage.goto(new URL('settings/', source).href);
     for (const [key, value] of Object.entries(profile)) await oldPage.locator('#' + key).fill(value);
     await oldPage.locator('#saveProfile').click();
@@ -134,8 +135,17 @@ const withoutExportTime = payload => {
     await oldPage.locator('#amount').fill('30000');
     assert((await oldPage.locator('#feeResults').innerText()).includes('24,060円'), 'Representative calculator result');
     await oldPage.locator('#home').click();
-    await oldPage.locator('[data-page="rating"]').click();
-    await oldPage.locator('[data-star="5"][data-delta="1"]').click();
+    // Simulate a pre-existing installation whose last screen was the now-hidden rating.
+    await oldPage.evaluate(rating => {
+      const saved = JSON.parse(localStorage.getItem('merchant_calcs_v1'));
+      localStorage.setItem('merchant_calcs_v1', JSON.stringify({ ...saved, rating, page: 'rating', lastUsedAt: Date.now() }));
+    }, legacyRating);
+    await oldPage.reload();
+    assert.equal(await oldPage.locator('#heading').innerText(), '出店者の計算機', 'Legacy rating screen falls back to calculator home');
+    assert.equal(await oldPage.locator('[data-page="rating"]').count(), 0, 'Rating tile stays hidden');
+    assert.equal(await oldPage.locator('[data-star], #editStars').count(), 0, 'Rating controls stay hidden');
+    assert.equal(await oldPage.locator('[data-page]').count(), 3, 'Fee, cancellation and review tools remain available');
+    assert.deepEqual(await oldPage.evaluate(() => JSON.parse(localStorage.getItem('merchant_calcs_v1')).rating), legacyRating);
     await oldPage.locator('nav.tool-nav [data-tool-link="home"]').click();
     await oldPage.waitForURL(source.href);
     await oldPage.locator('a.settings').click();
@@ -143,6 +153,8 @@ const withoutExportTime = payload => {
     assert.equal(original.payload.receipt.draft.recipient, receiptDraft);
     assert.equal(original.payload.estimate.draft.recipient, estimateDraft);
     assert.equal(original.payload.photoDraft.customer, photoCustomer);
+    assert.deepEqual(original.payload.calculator.rating, legacyRating, 'Unified backup retains hidden rating values');
+    assert.equal(original.payload.calculator.page, 'rating', 'Display fallback does not discard the saved legacy screen');
     assert.equal(Object.keys(original.payload.receiptPdfs).length, 1);
     assert.equal(Object.keys(original.payload.estimatePdfs).length, 1);
 
@@ -200,10 +212,11 @@ const withoutExportTime = payload => {
     assert(photoPdf.includes(Buffer.from('/Count 1')), 'Restored photo must still produce a one-page PDF');
 
     await newPage.goto(new URL('merchant-calculator/', target).href);
-    // The previous calculator screen is restored for recent sessions.
-    if (await newPage.locator('[data-page="rating"]').count()) await newPage.locator('[data-page="rating"]').click();
-    assert.equal(await newPage.locator('[data-star="5"][data-delta="1"]').locator('..').locator('strong').innerText(), '1件');
-    await newPage.locator('#home').click();
+    assert.equal(await newPage.locator('#heading').innerText(), '出店者の計算機');
+    assert.equal(await newPage.locator('[data-page="rating"], [data-star], #editStars').count(), 0, 'Imported legacy rating remains hidden');
+    const importedCalculator = await newPage.evaluate(() => JSON.parse(localStorage.getItem('merchant_calcs_v1')));
+    assert.deepEqual(importedCalculator.rating, legacyRating, 'Rating values survive import and calculator startup');
+    assert.equal(importedCalculator.page, 'rating', 'Imported hidden screen falls back visually without changing its backup value');
     await newPage.locator('[data-page="fee"]').click();
     assert.equal(await newPage.locator('#rate').inputValue(), '18');
     assert.equal(await newPage.locator('#amount').inputValue(), '', 'Calculator amounts intentionally remain transient');

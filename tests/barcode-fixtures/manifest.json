@@ -1,0 +1,32 @@
+[
+  {
+    "file": "ean13.png",
+    "text": "4900000000016",
+    "format": "EAN_13"
+  },
+  {
+    "file": "ean8.png",
+    "text": "12345670",
+    "format": "EAN_8"
+  },
+  {
+    "file": "upca.png",
+    "text": "012345678905",
+    "format": "UPC_A"
+  },
+  {
+    "file": "upce.png",
+    "text": "01234565",
+    "format": "UPC_E"
+  },
+  {
+    "file": "code128.png",
+    "text": "SHOP-TEST-128",
+    "format": "CODE_128"
+  },
+  {
+    "file": "qr.png",
+    "text": "https://example.invalid/shop-tools/test?sku=LOCAL-QR-001",
+    "format": "QR_CODE"
+  }
+]
