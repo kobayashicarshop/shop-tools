@@ -20,13 +20,13 @@ const bytes = file => fs.readFileSync(path.join(__dirname, 'barcode-fixtures', f
   });
   try {
     await page.goto(base, { waitUntil: 'load' });
-    await page.setContent('<!doctype html><video id="scanner-video" muted playsinline></video>');
+    await page.setContent('<!doctype html><main>Photo decoder test</main>');
     await page.evaluate(async url => {
       // Explicitly emulate a browser without the native detection API (e.g. Safari).
       Object.defineProperty(window, 'BarcodeDetector', { configurable: true, value: undefined });
       const { BarcodeScanner } = await import(url);
       window.scanResults = []; window.scanErrors = [];
-      window.scanner = new BarcodeScanner(document.querySelector('video'), {
+      window.scanner = new BarcodeScanner({
         onResult: result => scanResults.push(result),
         onError: error => scanErrors.push({ name: error.name, message: error.message }),
       });
@@ -117,94 +117,39 @@ const bytes = file => fs.readFileSync(path.join(__dirname, 'barcode-fixtures', f
     }, bytes('ean13.png'));
     assert.deepEqual(cancellation, { value: null, errors: 0, delivered: 0 }, 'Closing during image loading must cancel promptly');
 
-    const denied = await page.evaluate(async () => {
-      const original = navigator.mediaDevices.getUserMedia, before = scanErrors.length;
-      navigator.mediaDevices.getUserMedia = async () => { throw new DOMException('Synthetic permission denial', 'NotAllowedError'); };
-      try { return { started: await scanner.start(), errors: scanErrors.length - before, message: scanErrors.at(-1).message }; }
-      finally { navigator.mediaDevices.getUserMedia = original; }
-    });
-    assert.equal(denied.started, false);
-    assert.equal(denied.errors, 1);
-    assert(denied.message.includes('許可'));
-
-    const lifecycle = await page.evaluate(async () => {
-      const original = navigator.mediaDevices.getUserMedia;
-      const canvas = document.createElement('canvas'); canvas.width = canvas.height = 64;
-      canvas.getContext('2d').fillRect(0, 0, 64, 64);
-      const first = canvas.captureStream(1), second = canvas.captureStream(1);
-      let resolveFirst, calls = 0;
-      navigator.mediaDevices.getUserMedia = () => ++calls === 1 ? new Promise(resolve => { resolveFirst = resolve; }) : Promise.resolve(second);
+    const pageHide = await page.evaluate(async encoded => {
+      const OriginalImage = window.Image, before = scanErrors.length;
+      window.Image = class { set src(value) {} removeAttribute() {} };
       try {
-        const oldStart = scanner.start();
-        const newStarted = await scanner.start();
-        resolveFirst(first);
-        const oldStarted = await oldStart;
-        const secondAlive = second.getTracks().every(track => track.readyState === 'live');
-        const firstStopped = first.getTracks().every(track => track.readyState === 'ended');
+        const pending = scanner.readImage(makeFile(encoded));
         window.dispatchEvent(new Event('pagehide'));
-        const pageHideStopped = second.getTracks().every(track => track.readyState === 'ended') && scanner.video.srcObject === null;
-        return { oldStarted, newStarted, firstStopped, secondAlive, pageHideStopped };
-      } finally { scanner.stop(); navigator.mediaDevices.getUserMedia = original; }
-    });
-    assert.deepEqual(lifecycle, { oldStarted: false, newStarted: true, firstStopped: true, secondAlive: true, pageHideStopped: true }, 'Late permission results must not reopen or stop a newer camera session');
-
-    const lateClose = await page.evaluate(async () => {
-      const original = navigator.mediaDevices.getUserMedia;
-      const canvas = document.createElement('canvas'); canvas.width = canvas.height = 64;
-      canvas.getContext('2d').fillRect(0, 0, 64, 64);
-      const stream = canvas.captureStream(1); let resolve;
-      navigator.mediaDevices.getUserMedia = () => new Promise(done => { resolve = done; });
-      try {
-        const pending = scanner.start(); scanner.stop(); resolve(stream);
-        return { started: await pending, stopped: stream.getTracks().every(track => track.readyState === 'ended'), empty: scanner.video.srcObject === null };
-      } finally { navigator.mediaDevices.getUserMedia = original; }
-    });
-    assert.deepEqual(lateClose, { started: false, stopped: true, empty: true });
-
-    const hidden = await page.evaluate(async () => {
-      const original = navigator.mediaDevices.getUserMedia;
-      const canvas = document.createElement('canvas'); canvas.width = canvas.height = 64;
-      canvas.getContext('2d').fillRect(0, 0, 64, 64);
-      const stream = canvas.captureStream(1);
-      navigator.mediaDevices.getUserMedia = async () => stream;
-      try {
-        await scanner.start();
-        Object.defineProperty(document, 'hidden', { configurable: true, value: true });
-        document.dispatchEvent(new Event('visibilitychange'));
-        return stream.getTracks().every(track => track.readyState === 'ended') && scanner.video.srcObject === null;
-      } finally { delete document.hidden; navigator.mediaDevices.getUserMedia = original; scanner.stop(); }
-    });
-    assert.equal(hidden, true, 'Hiding the document must stop the camera');
-
-    const countBeforeCamera = await page.evaluate(() => scanResults.length);
-    await page.evaluate(async encoded => {
-      const image = new Image(); image.src = URL.createObjectURL(makeFile(encoded)); await image.decode();
-      // Live-stream regression: stream 90-degree retail stripes as a portrait frame.
-      const canvas = document.createElement('canvas'); canvas.width = image.naturalHeight; canvas.height = image.naturalWidth;
-      const context = canvas.getContext('2d');
-      context.translate(canvas.width, 0); context.rotate(Math.PI / 2);
-      context.drawImage(image, 0, 0); URL.revokeObjectURL(image.src);
-      const stream = canvas.captureStream(2), original = navigator.mediaDevices.getUserMedia;
-      window.cameraFixture = { stream, canvas, original, constraints: null };
-      navigator.mediaDevices.getUserMedia = async constraints => { cameraFixture.constraints = constraints; return stream; };
-      await scanner.start();
+        return { value: await pending, errors: scanErrors.length - before };
+      } finally { window.Image = OriginalImage; }
     }, bytes('ean13.png'));
-    await page.waitForFunction(count => scanResults.length === count + 1, countBeforeCamera);
-    const camera = await page.evaluate(() => {
-      navigator.mediaDevices.getUserMedia = cameraFixture.original;
-      return { result: scanResults.at(-1), count: scanResults.length, stopped: cameraFixture.stream.getTracks().every(track => track.readyState === 'ended'), empty: scanner.video.srcObject === null, audio: cameraFixture.constraints.audio, facing: cameraFixture.constraints.video.facingMode.ideal, inline: scanner.video.playsInline, timer: scanner.timer };
-    });
-    assert.deepEqual(camera.result, { text: fixtures[0].text, format: 'EAN_13' });
-    assert.equal(camera.count, countBeforeCamera + 1);
-    assert.equal(camera.stopped, true);
-    assert.equal(camera.empty, true);
-    assert.equal(camera.audio, false);
-    assert.equal(camera.facing, 'environment');
-    assert.equal(camera.inline, true);
-    assert.equal(camera.timer, null, 'Successful camera decode must stop continuous scanning');
+    assert.deepEqual(pageHide, { value: null, errors: 0 });
+
+    const superseded = await page.evaluate(async encoded => {
+      const OriginalImage = window.Image, before = scanResults.length;
+      window.Image = class { set src(value) {} removeAttribute() {} };
+      const pending = scanner.readImage(makeFile(encoded));
+      window.Image = OriginalImage;
+      const current = await scanner.readImage(makeFile(encoded));
+      return { old: await pending, current, delivered: scanResults.length - before };
+    }, bytes('ean13.png'));
+    assert.deepEqual(superseded, { old: null, current: { text: fixtures[0].text, format: 'EAN_13' }, delivered: 1 });
+
+    // OS file/camera choosers may hide the document; image decoding must still work.
+    const hiddenImage = await page.evaluate(async encoded => {
+      Object.defineProperty(document, 'hidden', { configurable: true, value: true });
+      document.dispatchEvent(new Event('visibilitychange'));
+      try { return await scanner.readImage(makeFile(encoded)); }
+      finally { delete document.hidden; }
+    }, bytes('ean13.png'));
+    assert.deepEqual(hiddenImage, { text: fixtures[0].text, format: 'EAN_13' });
+    assert.equal(await page.evaluate(() => typeof scanner.start), 'undefined');
     await page.evaluate(() => scanner.destroy());
     assert.deepEqual(errors, [], 'No JavaScript runtime errors');
     assert.deepEqual(violations, [], 'No uploads, cross-origin requests or QR URL requests');
-    console.log('PASS: 6 barcode formats without BarcodeDetector, image errors/cancel, camera permission/races/once, hidden/pagehide stop, no external transmission');
+    console.log('PASS: 6 barcode formats without BarcodeDetector, image errors/cancel, hidden document image decoding, no live camera API, no external transmission');
   } finally { await browser.close(); }
 })().catch(error => { console.error(error); process.exit(1); });

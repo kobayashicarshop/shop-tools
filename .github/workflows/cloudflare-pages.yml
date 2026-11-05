@@ -70,6 +70,8 @@ jobs:
           TEST_BASE_URL=http://127.0.0.1:8767/shop-tools node tests/inventory-safety.cjs
           node tests/inventory-backup.cjs
           TEST_BASE_URL=http://127.0.0.1:8767/shop-tools node tests/inventory-backup.cjs
+          node tests/inventory-photo.cjs
+          TEST_BASE_URL=http://127.0.0.1:8767/shop-tools node tests/inventory-photo.cjs
           node tests/barcode-decode.cjs
           TEST_BASE_URL=http://127.0.0.1:8767/shop-tools node tests/barcode-decode.cjs
           TEST_WEB_ROOT=dist node tests/inventory-offline.cjs

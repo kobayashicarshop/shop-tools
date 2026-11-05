@@ -161,6 +161,13 @@ async function seedOtherCustomerData(page) {
         await page.locator('#productList .product').waitFor();
         assert((await page.locator('#productList').innerText()).includes('オンラインで登録した架空商品'));
         assert((await page.locator('#productList').innerText()).includes('3 個'));
+        const beforePhoto = await snapshot(page, server.base);
+        await page.locator('#scanBarcode').click();
+        await page.locator('#barcodeImage').setInputFiles(path.join(__dirname, 'barcode-fixtures/ean13.png'));
+        await page.locator('#editView:not([hidden])').waitFor();
+        assert.equal(await page.locator('#barcode').inputValue(), '4900000000016', 'Photo barcode decodes offline using bundled libraries');
+        assert.deepEqual(await snapshot(page, server.base), beforePhoto, 'Offline lookup must not mutate inventory');
+        await page.locator('#back').click();
         await registerProduct(page, 'オフラインで登録した架空商品', '2');
         await move(page, '入庫', '4', '6');
         await move(page, '出庫', '1', '5');

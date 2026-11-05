@@ -1,7 +1,7 @@
 # バーコード読取ライブラリと検証記録
 
 2026-11-04に公式npm registryの`latest`を確認し、次の固定版を同梱しました。
-利用時にCDNへ接続せず、撮影フレーム・選択画像・読取文字列を外部へ送りません。
+利用時にCDNへ接続せず、選択画像・読取文字列を外部へ送りません。
 
 | パッケージ | 固定版 | 公式公開日 | ライセンス |
 | --- | --- | --- | --- |
@@ -36,17 +36,14 @@ UMDを更新・置換するときは、同梱する依存コードとライセ�
 APIの根拠は[browserの読取API](https://github.com/zxing-js/browser/blob/v0.2.1/src/readers/BrowserCodeReader.ts)、[libraryの利用例](https://github.com/zxing-js/library/tree/v0.23.0#usage)です。
 
 ネイティブ`BarcodeDetector`は使用しません。SafariなどそのAPIがない環境も同じJavaScriptの処理を通ります。
-カメラ開始は利用者の操作を起点にし、`getUserMedia`で音声を無効、背面カメラを`ideal`で希望します。
-`video`は`muted`、`autoplay`、`playsinline`に設定します。背面カメラが必ず選ばれるという保証はありません。
-HTTPSなどのsecure contextとカメラ権限が必要です。拒否・カメラなし・他アプリとの競合は日本語メッセージを返し、画像読取や手入力を利用できるようにします。
-根拠は[WebKitのカメラAPI説明](https://webkit.org/blog/7763/a-closer-look-into-webrtc/)と[iOSのinline video仕様](https://webkit.org/blog/6784/new-video-policies-for-ios/)です。
+写真・保存画像の読み取りに一本化しました。`<input type="file" accept="image/*">` を使い、`capture` は指定しません。
+OS標準の選択画面から撮影・写真ライブラリ・ファイルなどを選べる環境に対応します。選択肢はOS・ブラウザーによって異なり、すべての端末で同じ表示になるとは限りません。
+アプリは `getUserMedia`、動画表示、連続解析を使用しません。画像を開き、ローカルCanvasで一度解析します。
+通常方向で読めない場合は90度・270度・180度も試します。GitHub側で追加された回転対応を維持しています。
+写真選択や撮影中にSafariが非表示になる場合があるため、`visibilitychange`だけでは画像処理を中止しません。
+閉じる・ページ移動・`pagehide`では読込を中止し、遅れて届いた読取結果や商品検索結果で画面が戻らないようにします。
 
-カメラの解析は約240ms間隔、最大辺1280pxです。読取後は1回だけ結果を返して停止します。
-閉じる操作、`visibilitychange`で非表示になった場合、`pagehide`で全トラックと解析タイマーを停止します。
-開始待ちの権限応答・再生応答・画像読込はgeneration tokenで無効化し、閉じた後に遅れて返ったストリームも停止します。
-権限ダイアログ自体はWeb APIから強制的には閉じられません。
-
-現時点の自動検証はChromiumです。実機のiPhone Safari・Androidカメラでの照明、ピント、権限操作、画面移動後のカメラ表示は別途確認が必要です。
+iPhone Safari・Android実機でのOS選択画面、撮影・ピント・HEIC画像の取り扱いは未確認です。自動検証にはChromiumと合成画像を使います。
 
 ## UPC-Eの互換処理
 
@@ -60,18 +57,17 @@ HTTPSなどのsecure contextとカメラ権限が必要です。拒否・カメ�
 共通`decodeCanvas()`でZXingが読取失敗した場合だけ、UPC-Eの開始・終了ガード、余白、数字のバー幅、パリティを照合します。
 number systemは0と1だけに限定し、検算用にUPC-Aへ展開してチェック桁を検証します。
 **外部へ返す値は元のUPC-Eの8文字です。UPC-Aへの変換や先頭0の除去は行いません。**
-画像・カメラの両方が同じ処理を使用します。90度の回転と逆方向も試しますが、反射・曲面・斜め撮影など実物条件での精度は未確認です。
+写真解析でこの処理を使用します。90度の回転と逆方向も試しますが、反射・曲面・斜め撮影など実物条件での精度は未確認です。
 上流で読取が改善された場合は合成画像と実機で比較し、この互換処理を残す必要があるか再判断してください。
 
 ## API契約と画像上限
 
 ```js
-const scanner = new BarcodeScanner(video, {
+const scanner = new BarcodeScanner({
   onResult: ({ text, format }) => { /* 文字列として扱う */ },
   onError: error => { /* error.messageを表示 */ },
 });
-await scanner.start();           // 開始できればtrue、失敗・中止はfalse
-scanner.stop();                  // 同期的に停止。再開可能
+scanner.stop();                  // 進行中の画像読込を中止。再利用可能
 await scanner.readImage(file);   // 成功は同じ結果object、失敗・中止はnull
 scanner.destroy();               // UIを破棄するときはイベント監視も解除
 ```
@@ -83,8 +79,8 @@ QRにURLが入っていても文字列を返すだけで、リンク・ページ
 - 入力ファイルは30MiB以下。PNG、JPEG、WebP、GIF、BMP、AVIF、HEIC、HEIFのMIMEを受け付けます。
 - 実際に開ける画像形式はブラウザー依存です。開けない場合はPNG/JPEGへの変換を案内します。
 - SVGを拒否します。外部画像を参照するSVGも画像として読み込みません。
-- 展開後は25メガピクセル以下、縦横それぞれ12,000px以下。読込待ちは10秒、再生待ちは8秒で打ち切ります。
-- 読取用Canvasは最大辺2400pxへ縮小します。読取後の画像・Object URL・カメラ映像は保持せず、保存領域へ書き込みません。
+- 展開後は25メガピクセル以下、縦横それぞれ12,000px以下。読込待ちは10秒で打ち切ります。
+- 読取用Canvasは最大辺2400pxへ縮小します。読取後の画像・Object URLは保持せず、保存領域へ書き込みません。
 
 ## 自作fixtureと検証
 
@@ -99,11 +95,12 @@ TEST_BASE_URL=http://127.0.0.1:8765 node tests/barcode-decode.cjs
 ```
 
 テスト実行には既存のPlaywright開発環境と静的HTTPサーバーを使います。fixtureやテストコードは公開成果物に含めません。
-2026-11-04、ローカルChromiumで次を確認しました。
+自動試験で以下を確認します（合成画像であり実機試験ではありません）。
 
 - ネイティブAPIを無効にして6形式の画像を実際に読取。QR URLはページ移動なし。
 - UPC-Eのnumber system 0/1、末尾数字0〜9の20画像と90度回転画像を読取。8文字と先頭0を保持。
+- JAN-13の90/180/270度、JAN-8・Code 128の回転画像を読取。
 - 不正チェック桁、壊れた終了ガード、白紙、破損画像、SVG、容量超過を拒否。
-- カメラ権限拒否、開始待ち中のclose、古い開始応答と新しいセッションの競合、画像読込中のcloseを検証。
-- 非表示・pagehideで停止。カメラを模擬したCanvasストリームでも実画像から読取し、1回だけ結果を返して全トラックを停止。
-- JavaScript実行エラー0件、外部リクエスト・POST等の画像送信0件。
+- 画像読込中のclose・pagehide、古い読込結果の無効化、OS選択画面による一時非表示を検証。
+- 写真選択UI、解析中表示、再選択、未登録→登録画面、登録済み→商品詳細、手入力検索、読取だけでは在庫・履歴が変わらないことを検証。
+- JavaScript実行エラー・外部リクエスト・画像送信がないことを検証。

@@ -1,4 +1,4 @@
-// Synthetic products and canvas camera streams in an isolated browser context only.
+// Synthetic products and delayed database reads in an isolated browser context only.
 const { chromium } = require('playwright');
 const assert = require('node:assert/strict');
 const base = (process.env.TEST_BASE_URL || 'http://127.0.0.1:8765').replace(/\/$/, '');
@@ -90,66 +90,26 @@ async function createProduct(page, name, quantity) {
     assert.equal(await page.locator('#saveProduct').getAttribute('aria-busy'), null);
 
     await page.locator('#back').click();
-    await page.evaluate(() => {
-      const originalCamera = navigator.mediaDevices.getUserMedia;
-      inventorySafety.originalCamera = originalCamera;
-      navigator.mediaDevices.getUserMedia = async () => {
-        const canvas = document.createElement('canvas');
-        canvas.width = canvas.height = 64;
-        canvas.getContext('2d').fillRect(0, 0, 64, 64);
-        const stream = canvas.captureStream(2);
-        inventorySafety.camera = { canvas, stream };
-        return stream;
-      };
-    });
     await page.locator('#scanBarcode').click();
-    await page.waitForFunction(() => document.querySelector('#cameraStatus').textContent.includes('バーコード全体'));
-    assert.equal(await page.evaluate(() => inventorySafety.camera.stream.getTracks().every(track => track.readyState === 'live')), true);
-
-    // Closing must stop real MediaStream tracks before a database read can complete.
     await page.evaluate(async () => {
       const { InventoryStore } = await import('./store.js');
-      InventoryStore.prototype.list = function () {
-        return new Promise(resolve => { inventorySafety.finishCloseRead = resolve; });
-      };
+      const original = InventoryStore.prototype.findBarcode;
+      InventoryStore.prototype.findBarcode = () => new Promise(resolve => {
+        inventorySafety.releaseLookup = () => { InventoryStore.prototype.findBarcode = original; resolve(null); };
+      });
     });
+    await page.locator('#manualBarcode').fill('LATE-CODE');
+    await page.locator('#manualBarcodeForm button').click();
+    await page.waitForFunction(() => typeof inventorySafety.releaseLookup === 'function');
     await page.locator('#closeScanner').click();
-    await page.waitForFunction(() => typeof inventorySafety.finishCloseRead === 'function');
-    const stoppedBeforeRead = await page.evaluate(() => ({
-      stopped: inventorySafety.camera.stream.getTracks().every(track => track.readyState === 'ended'),
-      cleared: document.querySelector('#camera').srcObject === null,
-      closed: document.querySelector('#scannerView').hidden,
-      listShown: !document.querySelector('#listView').hidden,
-    }));
-    assert.deepEqual(stoppedBeforeRead, { stopped: true, cleared: true, closed: true, listShown: true }, 'Closing the camera must not depend on IndexedDB');
-    await page.evaluate(async () => {
-      const { InventoryStore } = await import('./store.js');
-      InventoryStore.prototype.list = inventorySafety.originalList;
-      inventorySafety.finishCloseRead(await new InventoryStore().list());
-    });
-
-    // The same guarantee holds when the read fails instead of completing later.
-    await page.locator('#scanBarcode').click();
-    await page.waitForFunction(() => document.querySelector('#cameraStatus').textContent.includes('バーコード全体'));
-    await page.evaluate(async () => {
-      const { InventoryStore } = await import('./store.js');
-      InventoryStore.prototype.list = () => Promise.reject(new Error('架空のDB読み取り失敗'));
-    });
-    await page.locator('#closeScanner').click();
-    await page.waitForFunction(() => document.querySelector('#status').textContent.includes('架空のDB読み取り失敗'));
-    assert.equal(await page.locator('#scannerView').isVisible(), false);
-    assert.equal(await page.locator('#listView').isVisible(), true);
-    assert.equal(await page.evaluate(() => inventorySafety.camera.stream.getTracks().every(track => track.readyState === 'ended') && document.querySelector('#camera').srcObject === null), true, 'Database failure must leave no running camera track');
-    await page.evaluate(async () => {
-      const { InventoryStore } = await import('./store.js');
-      InventoryStore.prototype.list = inventorySafety.originalList;
-      navigator.mediaDevices.getUserMedia = inventorySafety.originalCamera;
-    });
+    await page.evaluate(() => inventorySafety.releaseLookup());
+    await page.locator('#listView:not([hidden])').waitFor();
+    assert.equal(await page.locator('#editView').isVisible(), false, 'Late lookup must not reopen a closed photo screen');
     const finalSnapshot = await page.evaluate(async () => new (await import('./store.js')).InventoryStore().exportData());
-    assert.deepEqual(finalSnapshot, after, 'Camera close failures never mutate products or movements');
+    assert.deepEqual(finalSnapshot, after, 'Cancelled barcode lookup never mutates products or movements');
     assert.deepEqual(errors, [], 'No unhandled JavaScript errors');
     assert.deepEqual(violations, [], 'Only same-origin static GET requests are allowed');
-    console.log('PASS: save target/snapshot protected during delayed reads, navigation and duplicate submit locked, camera stopped before delayed/failed DB reads, stock/history unchanged');
+    console.log('PASS: save target/snapshot protected during delayed reads, navigation and duplicate submit locked, late barcode lookup cancelled after close, stock/history unchanged');
   } finally {
     await browser.close();
   }

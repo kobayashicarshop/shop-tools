@@ -17,11 +17,11 @@ async function saving(buttonId,action){
   try{await action()}finally{for(const [el,disabled] of controls)el.disabled=disabled;$(buttonId).removeAttribute('aria-busy');busy=false}
 }
 document.addEventListener('click',event=>{if(busy&&event.target.closest('a')){event.preventDefault();event.stopImmediatePropagation()}},true);
-const scanner=new BarcodeScanner($('camera'),{
-  onResult:result=>safe(()=>barcodeResult(typeof result==='string'?result:result.text)),
-  onError:error=>{$('cameraStatus').textContent=readable(error)+' 手入力または画像ファイルからの読み取りも使えます。';}
-});
-function show(id){if(id!=='scannerView')scanner.stop();view=id;$('status').hidden=true;for(const name of ['listView','editView','detailView','moveView','historyView','scannerView'])$(name).hidden=name!==id;$('back').hidden=id==='listView';window.scrollTo(0,0)}
+let scanOperation=0;
+const scanner=new BarcodeScanner({onError:error=>{$('photoStatus').textContent=readable(error)}});
+function photoBusy(value){$('scannerView').setAttribute('aria-busy',String(value));$('barcodeImage').disabled=value;for(const el of $('manualBarcodeForm').elements)el.disabled=value}
+function cancelPhoto(){scanOperation++;scanner.stop();photoBusy(false)}
+function show(id){if(id!=='scannerView')cancelPhoto();view=id;$('status').hidden=true;for(const name of ['listView','editView','detailView','moveView','historyView','scannerView'])$(name).hidden=name!==id;$('back').hidden=id==='listView';window.scrollTo(0,0)}
 async function refresh(){products=await store.list();renderList()}
 async function home(){scanner.stop();show('listView');await refresh()}
 function badges(p){const box=node('div'),state=stockStatus(p);box.append(node('span',categoryName(p.category),'badge'));if(p.archived)box.append(node('span','アーカイブ','badge'));if(state.empty)box.append(node('span','在庫なし','badge empty'));if(state.low)box.append(node('span','要補充','badge low'));return box}
@@ -39,8 +39,8 @@ function renderList(){
   }
   $('moreProducts').hidden=filtered.length<=visibleCount;
 }
-async function detail(productId){
-  const p=await store.get(productId);if(!p)throw Error('商品が見つかりません');selected=p;
+async function detail(productId,isCurrent=()=>true){
+  const p=await store.get(productId);if(!isCurrent())return;if(!p)throw Error('商品が見つかりません');selected=p;
   const card=node('article',undefined,'card');card.append(node('h2',p.name),badges(p),node('p',formatQuantity(p.quantityMilli)+' '+p.unit,'stock'));
   const dl=node('dl',undefined,'details-grid');
   for(const [label,value] of [['品番',p.sku||'未設定'],['バーコード',p.barcode||'未設定'],['補充基準',p.reorderMilli===null?'未設定':formatQuantity(p.reorderMilli)+' '+p.unit],['仕入単価',p.costYen===null?'未設定':p.costYen.toLocaleString()+'円（税込）'],['参考販売単価',p.saleYen===null?'未設定':p.saleYen.toLocaleString()+'円（税込）'],['メモ',p.memo||'なし'],['商品ID',p.id],['作成日時',dateLabel(p.createdAt)],['更新日時',dateLabel(p.updatedAt)]])dl.append(node('dt',label),node('dd',value));
@@ -91,15 +91,31 @@ $('moveForm').onsubmit=event=>{event.preventDefault();safe(()=>saving('confirmMo
 async function openHistory(productId=null){await refresh();historyRows=await store.history(productId);historyCount=40;const p=products.find(p=>p.id===productId);$('historyTitle').textContent=p?p.name+'の履歴':'全商品の入出庫履歴';renderHistory();show('historyView')}
 function renderHistory(){const list=$('historyList');list.replaceChildren();if(!historyRows.length)list.append(node('p','履歴はありません。','empty-list'));const map=new Map(products.map(p=>[p.id,p]));for(const m of historyRows.slice(0,historyCount)){
   const p=map.get(m.productId),card=node('article',undefined,'history');card.append(node('h3',(p?.name||m.productId)+(p?.archived?'（アーカイブ）':'')),node('p',kindName[m.kind]+'　'+(m.deltaMilli>0?'+':'')+formatQuantity(m.deltaMilli)+' '+m.unit),node('p',formatQuantity(m.beforeMilli)+' → '+formatQuantity(m.afterMilli)+' '+m.unit),node('p','理由：'+m.reason));if(m.memo)card.append(node('p',m.memo));card.append(node('small',dateLabel(m.at)+' ／ 操作ID：'+m.id),button('商品を確認',()=>detail(m.productId)));list.append(card)}$('moreHistory').hidden=historyRows.length<=historyCount;}
-async function barcodeResult(raw){const code=String(raw??'').trim();if(!code||code.length>2048)throw Error('バーコード番号は1〜2048文字で入力してください');scanner.stop();const found=await store.findBarcode(code);if(found){await detail(found.id);status(found.archived?'アーカイブ中の商品です。必要に応じて管理対象に戻してください。':'登録済みの商品です。入庫・出庫を選び、数量を確認してください。')}else{await openEdit(null,code);status('未登録のバーコードです。商品情報を入力して保存してください。')}}
-async function startCamera(){show('scannerView');$('cameraStatus').textContent='カメラの使用許可を確認しています…';const started=await scanner.start();if(started&&view==='scannerView')$('cameraStatus').textContent='バーコード全体を枠内に映してください。読み取り後にカメラは停止します。'}
-$('scanBarcode').onclick=()=>safe(startCamera);$('restartCamera').onclick=()=>safe(startCamera);$('stopCamera').onclick=()=>{scanner.stop();$('cameraStatus').textContent='カメラを停止しました。手入力や画像ファイルから読み取れます。'};
-$('closeScanner').onclick=()=>safe(home);$('manualBarcodeForm').onsubmit=event=>{event.preventDefault();safe(()=>barcodeResult($('manualBarcode').value))};
-$('barcodeImage').onchange=event=>safe(async()=>{const file=event.target.files?.[0];if(!file)return;try{$('cameraStatus').textContent='画像を読み取っています…';await scanner.readImage(file)}finally{event.target.value=''}});
-document.addEventListener('visibilitychange',()=>{if(document.hidden){scanner.stop();if(view==='scannerView')$('cameraStatus').textContent='画面を離れたためカメラを停止しました。再開するときは「カメラを開始」を押してください。'}});
-window.addEventListener('pagehide',()=>scanner.stop());
+async function barcodeResult(raw,token=++scanOperation){
+  const code=String(raw??'').trim();if(!code||code.length>2048)throw Error('バーコード番号は1〜2048文字で入力してください');
+  scanner.stop();const isCurrent=()=>token===scanOperation&&view==='scannerView';
+  const found=await store.findBarcode(code);if(!isCurrent())return;
+  if(found){await detail(found.id,isCurrent);if(view==='detailView'&&selected?.id===found.id)status(found.archived?'アーカイブ中の商品です。必要に応じて管理対象に戻してください。':'登録済みの商品です。入庫・出庫を選び、数量を確認してください。')}
+  else{await openEdit(null,code);status('未登録のバーコードです。商品情報を入力して保存してください。')}
+}
+$('scanBarcode').onclick=()=>safe(()=>{cancelPhoto();show('scannerView');$('photoStatus').textContent='写真を撮るか、保存済みの画像を選択してください。手入力でも検索できます。'});
+$('closeScanner').onclick=()=>safe(home);
+$('manualBarcodeForm').onsubmit=event=>{event.preventDefault();if($('scannerView').getAttribute('aria-busy')==='true')return;safe(()=>barcodeResult($('manualBarcode').value))};
+$('barcodeImage').onchange=event=>safe(async()=>{
+  const file=event.target.files?.[0];event.target.value='';if(!file)return;
+  cancelPhoto();const token=scanOperation;photoBusy(true);$('photoStatus').textContent='写真を解析しています…';
+  try{
+    // Let the progress message paint before local CPU-intensive decoding.
+    await new Promise(resolve=>setTimeout(resolve,50));
+    if(token!==scanOperation)return;
+    const result=await scanner.readImage(file);
+    if(result&&token===scanOperation)await barcodeResult(result.text,token);
+  }finally{if(token===scanOperation)photoBusy(false)}
+});
+// OS photo selection/capture may temporarily hide Safari. Only leaving the page cancels it.
+window.addEventListener('pagehide',cancelPhoto);
 $('back').onclick=()=>safe(home);$('newProduct').onclick=()=>safe(()=>openEdit());$('allHistory').onclick=()=>safe(()=>openHistory());
 for(const id of ['search','categoryFilter','lowOnly','includeArchived'])$(id).addEventListener(id==='search'?'input':'change',()=>{visibleCount=40;renderList()});
 $('moreProducts').onclick=()=>{visibleCount+=40;renderList()};$('moreHistory').onclick=()=>{historyCount+=40;renderHistory()};
-window.__toolBeforeLeave=()=>{scanner.stop();return Promise.resolve()};
+window.__toolBeforeLeave=()=>{cancelPhoto();return Promise.resolve()};
 safe(home);

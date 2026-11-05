@@ -47,7 +47,9 @@ test('Pages artifact preserves application bytes, includes all paths, and exclud
     }
     const sw = readFileSync(path.join(output, 'sw.js'), 'utf8');
     assert.match(sw, /const CACHE='toolbox-shell-cf-[a-f0-9]{16}'/);
-    assert.equal(sw.replace(/toolbox-shell-cf-[a-f0-9]{16}/, 'toolbox-shell-v9'), readFileSync(path.join(sandbox, 'sw.js'), 'utf8'));
+    const sourceWorker = readFileSync(path.join(sandbox, 'sw.js'), 'utf8');
+    const sourceCache = sourceWorker.match(/const CACHE='(toolbox-shell-v\d+)'/)[1];
+    assert.equal(sw.replace(/toolbox-shell-cf-[a-f0-9]{16}/, sourceCache), sourceWorker);
     const headers = readFileSync(path.join(output, '_headers'), 'utf8');
     assert.match(headers, /X-Robots-Tag: noindex/);
     assert.match(headers, /\/sw\.js\s+Cache-Control: no-cache/);

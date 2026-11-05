@@ -11,7 +11,6 @@ const profile=fs.mkdtempSync(path.join(os.tmpdir(),'shop-inventory-test-'));
  try{
   context=await launch();const page=await context.newPage();page.on('pageerror',e=>errors.push(e.message));
   page.on('request',request=>{const url=new URL(request.url());if(!['data:','blob:'].includes(url.protocol)&&(url.origin!==new URL(base).origin||request.method()!=='GET'))unexpected.push(request.url())});
-  await page.addInitScript(()=>{navigator.mediaDevices.getUserMedia=async()=>{throw new DOMException('denied','NotAllowedError')}});
   await page.goto(base+'/inventory/');await page.waitForFunction(()=>document.getElementById('productCount').textContent==='0');
   assert.equal(await page.locator('nav.tool-nav a').count(),5);
   await page.click('#newProduct');await page.fill('#productName','作業用テープ');await page.fill('#sku','TAPE-01');await page.fill('#barcode','0012345678905');await page.fill('#initialQuantity','5');
@@ -29,7 +28,7 @@ const profile=fs.mkdtempSync(path.join(os.tmpdir(),'shop-inventory-test-'));
   await page.getByRole('button',{name:'棚卸調整',exact:true}).click();await page.fill('#moveQuantity','1');await page.fill('#adjustReason','現物を数えて訂正');page.once('dialog',d=>d.accept());await page.click('#confirmMove');await page.locator('#detailView:not([hidden])').waitFor();
   snapshot=await page.evaluate(async()=>new (await import('./store.js')).InventoryStore().exportData());assert.equal(snapshot.products[0].quantityMilli,1000);assert.deepEqual(snapshot.movements.sort((a,b)=>a.sequence-b.sequence).map(m=>[m.kind,m.beforeMilli,m.afterMilli]),[['initial',0,5000],['out',5000,2000],['in',2000,4000],['adjust',4000,1000]]);
   await page.click('#back');await page.fill('#search','TAPE-01');assert.equal(await page.locator('#productList article').count(),1);await page.fill('#search','0012345678905');assert.equal(await page.locator('#productList article').count(),1);await page.fill('#search','存在しない');assert.equal(await page.locator('#productList article').count(),0);await page.fill('#search','');
-  await page.click('#scanBarcode');await page.waitForFunction(()=>document.getElementById('cameraStatus').textContent.includes('手入力'));await page.fill('#manualBarcode','0012345678905');await page.locator('#manualBarcodeForm button').click();await page.locator('#detailView:not([hidden])').waitFor();
+  await page.click('#scanBarcode');await page.locator('#scannerView:not([hidden])').waitFor();await page.fill('#manualBarcode','0012345678905');await page.locator('#manualBarcodeForm button').click();await page.locator('#detailView:not([hidden])').waitFor();
   assert.equal((await page.evaluate(async()=>new (await import('./store.js')).InventoryStore().exportData())).movements.length,4,'Reading does not mutate inventory');
   await page.click('#back');await page.click('#newProduct');await page.fill('#productName','重複');await page.fill('#barcode','0012345678905');await page.click('#saveProduct');await page.locator('#duplicateBarcode:not([hidden])').waitFor();assert.equal((await page.evaluate(async()=>new (await import('./store.js')).InventoryStore().list())).length,1);
   await page.fill('#barcode','NEW-2');await page.fill('#sku','TAPE-01');await page.locator('#productName').focus();await page.locator('#skuWarning:not([hidden])').waitFor();
