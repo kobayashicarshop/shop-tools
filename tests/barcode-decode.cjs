@@ -42,6 +42,36 @@ const bytes = file => fs.readFileSync(path.join(__dirname, 'barcode-fixtures', f
       assert.deepEqual(result.result, { text: fixture.text, format: fixture.format }, fixture.file + ' must decode with the local JavaScript library');
       assert.equal(result.delivered, 1, 'Each image must deliver its result exactly once');
     }
+    // The same retail label must be readable while the iPhone stays in portrait.
+    // Rotate actual fixture pixels; CSS-only rotation would not pass these cases.
+    for (const fixture of [
+      { file: 'ean13.png', text: '4900000000016', format: 'EAN_13', turns: 1 },
+      { file: 'ean13.png', text: '4900000000016', format: 'EAN_13', turns: 2 },
+      { file: 'ean13.png', text: '4900000000016', format: 'EAN_13', turns: 3 },
+      { file: 'ean8.png', text: '12345670', format: 'EAN_8', turns: 1 },
+      { file: 'code128.png', text: 'SHOP-TEST-128', format: 'CODE_128', turns: 3 },
+    ]) {
+      const rotated = await page.evaluate(async ({ encoded, turns }) => {
+        const image = new Image(), url = URL.createObjectURL(makeFile(encoded));
+        try {
+          image.src = url;
+          await image.decode();
+          const canvas = document.createElement('canvas'), sideways = turns % 2 === 1;
+          canvas.width = sideways ? image.naturalHeight : image.naturalWidth;
+          canvas.height = sideways ? image.naturalWidth : image.naturalHeight;
+          const context = canvas.getContext('2d');
+          if (turns === 1) { context.translate(canvas.width, 0); context.rotate(Math.PI / 2); }
+          else if (turns === 2) { context.translate(canvas.width, canvas.height); context.rotate(Math.PI); }
+          else { context.translate(0, canvas.height); context.rotate(-Math.PI / 2); }
+          context.drawImage(image, 0, 0);
+          const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+          const before = scanResults.length;
+          return { value: await scanner.readImage(blob), delivered: scanResults.length - before };
+        } finally { URL.revokeObjectURL(url); }
+      }, { encoded: bytes(fixture.file), turns: fixture.turns });
+      assert.deepEqual(rotated.value, { text: fixture.text, format: fixture.format }, fixture.file + ' rotated ' + fixture.turns * 90 + ' degrees');
+      assert.equal(rotated.delivered, 1, 'Rotated barcode must deliver one result');
+    }
     assert.equal(await page.evaluate(() => scanErrors.length), 0);
     assert.equal(page.url(), base, 'QR URLs must never navigate');
 
@@ -149,8 +179,11 @@ const bytes = file => fs.readFileSync(path.join(__dirname, 'barcode-fixtures', f
     const countBeforeCamera = await page.evaluate(() => scanResults.length);
     await page.evaluate(async encoded => {
       const image = new Image(); image.src = URL.createObjectURL(makeFile(encoded)); await image.decode();
-      const canvas = document.createElement('canvas'); canvas.width = image.naturalWidth; canvas.height = image.naturalHeight;
-      canvas.getContext('2d').drawImage(image, 0, 0); URL.revokeObjectURL(image.src);
+      // Live-stream regression: stream 90-degree retail stripes as a portrait frame.
+      const canvas = document.createElement('canvas'); canvas.width = image.naturalHeight; canvas.height = image.naturalWidth;
+      const context = canvas.getContext('2d');
+      context.translate(canvas.width, 0); context.rotate(Math.PI / 2);
+      context.drawImage(image, 0, 0); URL.revokeObjectURL(image.src);
       const stream = canvas.captureStream(2), original = navigator.mediaDevices.getUserMedia;
       window.cameraFixture = { stream, canvas, original, constraints: null };
       navigator.mediaDevices.getUserMedia = async constraints => { cameraFixture.constraints = constraints; return stream; };
