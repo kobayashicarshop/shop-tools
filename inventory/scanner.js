@@ -5,6 +5,11 @@ const MAX_IMAGE_BYTES = 30 * 1024 * 1024;
 const MAX_IMAGE_PIXELS = 25_000_000;
 const MAX_IMAGE_EDGE = 12_000;
 const FORMATS = ['EAN_13', 'EAN_8', 'UPC_A', 'UPC_E', 'CODE_128', 'QR_CODE'];
+// Rotate only an occasional failed live frame; photo decoding can check all directions immediately.
+const ROTATION_RETRY_INTERVAL_MS = 700;
+const isDecodeMiss = error => ['NotFoundException', 'ChecksumException', 'FormatException'].includes(
+  typeof error?.getKind === 'function' ? error.getKind() : error?.name
+);
 const imageTypes = /^image\/(?:png|jpe?g|webp|gif|bmp|avif|heic|heif)$/i;
 
 function translatedError(error, image = false) {
@@ -123,6 +128,8 @@ export class BarcodeScanner {
     this.cancelImage = null;
     this.cancelPlay = null;
     this.canvas = document.createElement('canvas');
+    this.rotatedCanvas = document.createElement('canvas');
+    this.nextRotationAt = 0;
     this.reader = new globalThis.ZXing.MultiFormatReader();
     this.reader.setHints(new Map([
       [globalThis.ZXing.DecodeHintType.POSSIBLE_FORMATS, FORMATS.map(name => globalThis.ZXing.BarcodeFormat[name])],
@@ -148,6 +155,8 @@ export class BarcodeScanner {
     this.cancelPlay = null;
     this.releaseStream(this.stream);
     this.canvas.width = this.canvas.height = 0;
+    this.rotatedCanvas.width = this.rotatedCanvas.height = 0;
+    this.nextRotationAt = 0;
   }
 
   // Optional when an owning UI permanently removes the scanner instance.
@@ -233,17 +242,48 @@ export class BarcodeScanner {
     context.drawImage(source, 0, 0, this.canvas.width, this.canvas.height);
   }
 
-  decodeCanvas() {
-    const source = new globalThis.ZXingBrowser.HTMLCanvasElementLuminanceSource(this.canvas);
-    const bitmap = new globalThis.ZXing.BinaryBitmap(new globalThis.ZXing.HybridBinarizer(source));
-    try { return this.reader.decodeWithState(bitmap); }
+  decodeCanvas(tryRotations = false) {
+    const decode = canvas => {
+      const source = new globalThis.ZXingBrowser.HTMLCanvasElementLuminanceSource(canvas);
+      const bitmap = new globalThis.ZXing.BinaryBitmap(new globalThis.ZXing.HybridBinarizer(source));
+      return this.reader.decodeWithState(bitmap);
+    };
+    let initialError;
+    try { return decode(this.canvas); }
     catch (error) {
-      const kind = typeof error?.getKind === 'function' ? error.getKind() : error?.name;
-      if (!['NotFoundException', 'ChecksumException', 'FormatException'].includes(kind)) throw error;
-      const compatible = decodeUPC(this.canvas);
-      if (compatible) return compatible;
-      throw error;
+      if (!isDecodeMiss(error)) throw error;
+      initialError = error;
     }
+
+    // Preserve the existing UPC-E compatibility reader before trying extra orientations.
+    const compatible = decodeUPC(this.canvas);
+    if (compatible) return compatible;
+    if (!tryRotations) throw initialError;
+
+    // ZXing's default 1-D row scans do not reliably cover portrait-oriented bars.
+    // Rotate the actual decoded pixels, not the CSS video preview or a cropped region.
+    for (const turns of [1, 3, 2]) {
+      const rotated = this.rotatedCanvas;
+      const sideways = turns % 2 === 1;
+      rotated.width = sideways ? this.canvas.height : this.canvas.width;
+      rotated.height = sideways ? this.canvas.width : this.canvas.height;
+      const context = rotated.getContext('2d', { willReadFrequently: true });
+      if (!context) throw inputError('このブラウザーでは画像を読み取れません。');
+      if (turns === 1) {
+        context.translate(rotated.width, 0);
+        context.rotate(Math.PI / 2);
+      } else if (turns === 2) {
+        context.translate(rotated.width, rotated.height);
+        context.rotate(Math.PI);
+      } else {
+        context.translate(0, rotated.height);
+        context.rotate(-Math.PI / 2);
+      }
+      context.drawImage(this.canvas, 0, 0);
+      try { return decode(rotated); }
+      catch (error) { if (!isDecodeMiss(error)) throw error; }
+    }
+    throw initialError;
   }
 
   scanFrame(token) {
@@ -252,7 +292,9 @@ export class BarcodeScanner {
     try {
       if (this.video.readyState >= 2 && this.video.videoWidth && this.video.videoHeight) {
         this.draw(this.video, this.video.videoWidth, this.video.videoHeight, 1280);
-        const result = this.decodeCanvas();
+        const checkRotations = Date.now() >= this.nextRotationAt;
+        if (checkRotations) this.nextRotationAt = Date.now() + ROTATION_RETRY_INTERVAL_MS;
+        const result = this.decodeCanvas(checkRotations);
         if (result) { this.deliver(token, result); return; }
       }
     } catch (error) {
@@ -302,7 +344,7 @@ export class BarcodeScanner {
         throw inputError('画像は25メガピクセル以下、縦横それぞれ12,000ピクセル以下に縮小してください。');
       }
       this.draw(image, width, height, 2400);
-      return this.deliver(token, this.decodeCanvas());
+      return this.deliver(token, this.decodeCanvas(true));
     } catch (error) {
       this.fail(token, error, true);
       return null;
