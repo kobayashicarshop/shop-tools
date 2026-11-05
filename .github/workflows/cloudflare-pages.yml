@@ -13,6 +13,7 @@ on:
       - 'estimate/**'
       - 'merchant-calculator/**'
       - 'before-after-tsukurukun/**'
+      - 'inventory/**'
       - 'shared/**'
       - 'settings/**'
       - 'icons/**'
@@ -63,4 +64,22 @@ jobs:
           curl --retry 10 --retry-connrefused --retry-delay 1 --fail --silent http://127.0.0.1:8767/shop-tools/ > /dev/null
           node tests/integration.cjs
           TEST_BASE_URL=http://127.0.0.1:8767/shop-tools node tests/integration.cjs
+          node tests/inventory.cjs
+          TEST_BASE_URL=http://127.0.0.1:8767/shop-tools node tests/inventory.cjs
+          node tests/inventory-safety.cjs
+          TEST_BASE_URL=http://127.0.0.1:8767/shop-tools node tests/inventory-safety.cjs
+          node tests/inventory-backup.cjs
+          TEST_BASE_URL=http://127.0.0.1:8767/shop-tools node tests/inventory-backup.cjs
+          node tests/inventory-photo.cjs
+          TEST_BASE_URL=http://127.0.0.1:8767/shop-tools node tests/inventory-photo.cjs
+          node tests/barcode-decode.cjs
+          TEST_BASE_URL=http://127.0.0.1:8767/shop-tools node tests/barcode-decode.cjs
+          TEST_WEB_ROOT=dist node tests/inventory-offline.cjs
           node tests/cloudflare-migration.cjs
+      - name: Package static preview without deploying
+        uses: actions/upload-artifact@v4
+        with:
+          name: shop-tools-inventory-preview
+          path: dist/
+          include-hidden-files: true
+          retention-days: 7

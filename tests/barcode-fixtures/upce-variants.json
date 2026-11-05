@@ -1,0 +1,102 @@
+[
+  {
+    "file": "upce-0-0.png",
+    "text": "01234505",
+    "format": "UPC_E"
+  },
+  {
+    "file": "upce-0-1.png",
+    "text": "01234514",
+    "format": "UPC_E"
+  },
+  {
+    "file": "upce-0-2.png",
+    "text": "01234523",
+    "format": "UPC_E"
+  },
+  {
+    "file": "upce-0-3.png",
+    "text": "01234531",
+    "format": "UPC_E"
+  },
+  {
+    "file": "upce-0-4.png",
+    "text": "01234543",
+    "format": "UPC_E"
+  },
+  {
+    "file": "upce-0-5.png",
+    "text": "01234558",
+    "format": "UPC_E"
+  },
+  {
+    "file": "upce-0-6.png",
+    "text": "01234565",
+    "format": "UPC_E"
+  },
+  {
+    "file": "upce-0-7.png",
+    "text": "01234572",
+    "format": "UPC_E"
+  },
+  {
+    "file": "upce-0-8.png",
+    "text": "01234589",
+    "format": "UPC_E"
+  },
+  {
+    "file": "upce-0-9.png",
+    "text": "01234596",
+    "format": "UPC_E"
+  },
+  {
+    "file": "upce-1-0.png",
+    "text": "11234502",
+    "format": "UPC_E"
+  },
+  {
+    "file": "upce-1-1.png",
+    "text": "11234511",
+    "format": "UPC_E"
+  },
+  {
+    "file": "upce-1-2.png",
+    "text": "11234520",
+    "format": "UPC_E"
+  },
+  {
+    "file": "upce-1-3.png",
+    "text": "11234538",
+    "format": "UPC_E"
+  },
+  {
+    "file": "upce-1-4.png",
+    "text": "11234540",
+    "format": "UPC_E"
+  },
+  {
+    "file": "upce-1-5.png",
+    "text": "11234555",
+    "format": "UPC_E"
+  },
+  {
+    "file": "upce-1-6.png",
+    "text": "11234562",
+    "format": "UPC_E"
+  },
+  {
+    "file": "upce-1-7.png",
+    "text": "11234579",
+    "format": "UPC_E"
+  },
+  {
+    "file": "upce-1-8.png",
+    "text": "11234586",
+    "format": "UPC_E"
+  },
+  {
+    "file": "upce-1-9.png",
+    "text": "11234593",
+    "format": "UPC_E"
+  }
+]

@@ -207,7 +207,8 @@ const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQ
   await page.locator('#export').click();
   const backupFile=await backupDownload;
   const backup=JSON.parse(fs.readFileSync(await backupFile.path(),'utf8'));
-  assert.equal(backup.version,3,'Unified backup version 3');
+  assert.equal(backup.version,4,'Unified backup version 4');
+  assert.deepEqual(backup.inventory,{version:1,products:[],movements:[]},'Inventory is included even when empty');
   assert(backup.receipt.history.length>=1,'Receipt history must be included in unified backup');
   assert(Object.keys(backup.receiptPdfs).length>=1,'Actual receipt PDF blobs must be backed up');
   assert(backup.estimate.history.length>=1,'Quotation history in unified backup');

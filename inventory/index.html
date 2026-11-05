@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="ja"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#285fbb"><meta name="description" content="販売商品と消耗品を端末内で管理。無料・広告なし・ログイン不要の在庫管理。">
+<title>在庫管理 | 仕事の便利ツール</title>
+<link rel="manifest" href="../manifest.webmanifest"><link rel="stylesheet" href="./style.css">
+</head><body><main class="wrap">
+<header class="top"><a href="../" class="home-link">ホーム</a><h1>在庫管理</h1><button id="back" type="button" hidden>一覧へ</button></header>
+<p class="privacy">無料・広告なし・ログイン不要。商品・写真の読み取りは端末内で処理します。別端末とは自動同期されません。<a href="../settings/">バックアップ</a></p>
+<div id="status" role="status" aria-live="polite" hidden></div>
+<section id="listView" aria-label="在庫一覧">
+<div class="stats"><div><span>登録商品数</span><strong id="productCount">—</strong></div><div><span>在庫不足の商品数</span><strong id="lowCount">—</strong></div></div>
+<div class="actions"><button id="newProduct" class="primary" type="button">＋ 商品を登録</button><button id="scanBarcode" type="button">写真からバーコードを読み取る</button></div>
+<div class="card filters"><label for="search">商品名・品番・バーコード検索</label><input id="search" type="search" placeholder="商品名、品番、バーコード番号" autocomplete="off">
+<div class="filter-row"><label>分類<select id="categoryFilter"><option value="all">すべて</option><option value="sale">販売商品</option><option value="supply">消耗品</option></select></label><label class="check"><input id="lowOnly" type="checkbox">要補充のみ</label></div>
+<label class="check"><input id="includeArchived" type="checkbox">アーカイブも表示</label>
+<p class="hint">「要補充」は基準を設定した商品のみ。現在庫が基準以下になると表示します。</p></div>
+<div class="list-heading"><h2>商品一覧</h2><button id="allHistory" type="button">全商品の履歴</button></div><p id="listSummary" class="hint" aria-live="polite"></p>
+<div id="productList"></div><button id="moreProducts" type="button" hidden>さらに表示</button>
+</section>
+<section id="editView" hidden aria-labelledby="editTitle"><h2 id="editTitle">商品登録</h2>
+<form id="productForm" class="card">
+<label>商品名 <span class="required">必須</span><input id="productName" required maxlength="120" autocomplete="off"></label>
+<div class="two"><label>分類<select id="productCategory"><option value="sale">販売商品</option><option value="supply">消耗品</option></select></label><label>単位<select id="unit"><option>個</option><option>本</option><option>巻</option><option>箱</option><option>袋</option><option>セット</option><option>m</option><option>L</option><option>その他</option></select></label></div>
+<label>品番・管理番号 <small>任意</small><input id="sku" maxlength="100" autocomplete="off"></label><p id="skuWarning" class="warning" hidden></p>
+<label>バーコード番号 <small>任意・先頭の0も保存します</small><input id="barcode" maxlength="2048" type="text" autocomplete="off" autocapitalize="off" spellcheck="false"></label><div id="duplicateBarcode" class="warning" hidden></div>
+<label id="initialLabel">初期在庫数<input id="initialQuantity" required value="0" inputmode="decimal" autocomplete="off"></label><p id="unitHint" class="hint"></p>
+<details><summary>単価・補充基準・メモ</summary>
+<label>補充基準数量 <small>空欄は警告なし</small><input id="reorder" inputmode="decimal" autocomplete="off"></label>
+<div class="two"><label>仕入単価 <small>税込・円</small><input id="cost" inputmode="numeric" autocomplete="off"></label><label>参考販売単価 <small>税込・円</small><input id="salePrice" inputmode="numeric" autocomplete="off"></label></div>
+<p class="hint">価格は参考値です。税率・税区分を確定したり、見積書に自動反映したりするものではありません。</p>
+<label>メモ<textarea id="memo" maxlength="2000" rows="3"></textarea></label></details>
+<p id="productMeta" class="hint" hidden></p><button id="saveProduct" class="primary" type="submit">商品を保存</button>
+</form></section>
+<section id="detailView" hidden aria-label="商品詳細"><div id="productDetail"></div></section>
+<section id="moveView" hidden aria-labelledby="moveTitle"><h2 id="moveTitle">入庫</h2><form id="moveForm" class="card">
+<p id="moveProduct"></p><p id="currentStock" class="stock"></p>
+<label><span id="quantityLabel">入庫数量</span><input id="moveQuantity" required inputmode="decimal" autocomplete="off"></label>
+<label id="reasonSelectLabel">理由<select id="reasonSelect"></select></label><label id="adjustReasonLabel" hidden>調整理由 <span class="required">必須</span><input id="adjustReason" maxlength="200"></label>
+<label>備考 <small>任意</small><textarea id="moveMemo" maxlength="2000" rows="3"></textarea></label>
+<p id="stockPreview" class="stock-preview" aria-live="polite"></p><p class="hint">数量を確認し、次の確認画面で確定すると在庫が変わります。履歴の訂正は新しい棚卸調整で行います。</p>
+<button id="confirmMove" type="submit" class="primary">数量を確認して確定</button></form></section>
+<section id="historyView" hidden aria-labelledby="historyTitle"><h2 id="historyTitle">入出庫履歴</h2><p class="hint">新しい順に表示します。過去の記録は変更せず、商品の「棚卸調整」で訂正してください。</p><div id="historyList"></div><button id="moreHistory" type="button" hidden>さらに表示</button></section>
+<section id="scannerView" hidden aria-labelledby="scannerTitle" aria-busy="false"><h2 id="scannerTitle">写真からバーコードを読み取る</h2><div class="card">
+<p class="hint">コード全体が明るく鮮明に写るように撮影してください。読み取りだけでは在庫は変わりません。</p>
+<label class="image-label">写真を撮る・画像を選ぶ<input id="barcodeImage" type="file" accept="image/*" aria-describedby="photoHelp photoStatus"></label>
+<p id="photoHelp" class="hint">端末の選択画面から撮影や保存済み写真を選べます。表示される選択肢はOS・ブラウザーによって異なります。</p>
+<p id="photoStatus" role="status" aria-live="polite">写真を撮るか、保存済みの画像を選択してください。手入力でも検索できます。</p>
+<form id="manualBarcodeForm"><label>バーコード番号を手入力<input id="manualBarcode" type="text" maxlength="2048" required autocomplete="off" autocapitalize="off" spellcheck="false"></label><button type="submit">この番号で探す</button></form>
+<p class="hint">写真・画像・番号を外部送信しません。QRコードのURLも自動では開きません。</p><button id="closeScanner" type="button">閉じる</button>
+</div></section>
+<noscript>在庫管理にはJavaScriptを有効にしてください。</noscript>
+</main>
+<script type="module" src="./app.js"></script><script src="../shared/shell.js"></script>
+</body></html>

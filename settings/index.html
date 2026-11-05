@@ -20,9 +20,10 @@ a{color:#275da3}
 <button class="primary" id="saveProfile" type="button">設定を保存</button>
 <p class="notice">共通情報は新規書類への入力補助に使います。発行済みPDFを後から変更することはありません。</p></section>
 <section><h2>端末内データのバックアップ</h2>
-<p class="notice">計算機の記録、領収書と見積書の履歴・PDF、共通設定、写真報告書の下書きをJSONで保存できます。写真が多い場合はファイルが大きくなります。バックアップには顧客名・写真・角印などの個人情報が含まれるため、安全な場所に保管してください。</p>
+<p class="notice">在庫の商品・入出庫履歴、計算機の記録、領収書と見積書の履歴・PDF、共通設定、写真報告書の下書きをJSONで保存できます。写真が多い場合はファイルが大きくなります。バックアップには顧客名・写真・角印などの個人情報が含まれるため、安全な場所に保管してください。</p>
 <div class="stack"><button type="button" id="export">すべて書き出す</button><label class="file-btn">バックアップを読み込む<input type="file" id="import" accept=".json,application/json"></label></div>
-<p class="notice">復元時は既存データが上書きされます。復元前にバックアップを保存してください。</p>
+<p class="notice">復元時は既存データが上書きされます。復元前にバックアップを保存してください。旧形式（version 1〜3）の復元では、在庫は変更しません。</p>
+<p class="notice">容量不足などで復元が中断すると、写真・PDFの一部だけが反映される場合があります。成功表示と各ツールの内容を確認してください。在庫は商品と入出庫履歴を一緒に復元し、在庫の保存に失敗した場合は元の在庫を保持します。</p>
 </section>
 <section><h2>旧領収書アプリからの引き継ぎ</h2>
 <p class="notice">以前のサイトとは保存領域が異なるため、履歴や発行者情報は自動では移りません。旧アプリでバックアップを保存し、ファイルを保管してください。旧アプリ固有のバックアップ形式は移行前に確認が必要です。</p>
@@ -32,14 +33,26 @@ a{color:#275da3}
 <p class="notice">会員登録なし・広告なし。入力情報を保存するためのサーバーは使用しません。端末やブラウザーを変えるとデータは引き継がれません。端末側の削除やストレージ制限で失われる場合があるため、定期的なバックアップをおすすめします。</p>
 <p class="notice"><a href="../">ホームへ戻る</a></p></section>
 <div class="status" id="status" role="status"></div>
-</main><script>
+</main><script type="module">
 (()=>{'use strict';const PROFILE='worktools_profile_v1',CALC='merchant_calcs_v1',RECEIPT='receipt_maker_issuer_templates_v1',PHOTO='before_after_tsukurukun_v1',R_DRAFT='receipt_unified_draft_v2',R_ISSUER='receipt_unified_issuer_v2',R_TEMP='receipt_unified_templates_v2',R_HISTORY='receipt_unified_history_v2',R_DB='receipt_unified_pdf_v2',E_DRAFT='estimate_worktools_draft_v1',E_TEMPLATES='estimate_worktools_templates_v1',E_HISTORY='estimate_worktools_history_v1',E_DB='estimate_worktools_pdfs_v1';
 const $=id=>document.getElementById(id);const keys=['business','staff','phone','address','registration'];
 const notice=(message,error=false)=>{const n=$('status');n.textContent=message;n.className='status visible';n.style.background=error?'#fff0e7':'#e9f3fc';n.scrollIntoView({block:'nearest',behavior:'smooth'})};
+let inventoryModule,backupBusy=false;
+async function inventoryApi(){
+ try{
+  if(!inventoryModule)inventoryModule=import('../inventory/store.js').then(api=>({store:new api.InventoryStore(),validate:api.validateBackup}));
+  return await inventoryModule;
+ }catch(_){throw Error('在庫機能を読み込めませんでした。ページを開き直してから再度お試しください。バックアップの書き出し・復元は完了していません。')}
+}
+function setBackupBusy(value){backupBusy=value;$('export').disabled=value;$('import').disabled=value}
 try{const p=JSON.parse(localStorage.getItem(PROFILE)||'{}');for(const key of keys)$(key).value=typeof p[key]==='string'?p[key]:''}catch(_){}
 $('saveProfile').onclick=()=>{try{const p={};for(const key of keys)p[key]=$(key).value.trim();if(p.registration&&!/^T[0-9]{13}$/i.test(p.registration))throw Error('登録番号はT＋13桁で入力してください');localStorage.setItem(PROFILE,JSON.stringify(p));notice('共通情報を保存しました')}catch(e){notice(e.message||'保存できませんでした',true)}};
 function readPhoto(){return new Promise((resolve,reject)=>{const r=indexedDB.open(PHOTO,1);r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains('drafts'))r.result.createObjectStore('drafts')};r.onerror=()=>reject(r.error);r.onsuccess=()=>{const db=r.result;const tx=db.transaction('drafts','readonly'),q=tx.objectStore('drafts').get('current');q.onsuccess=()=>{const val=q.result||null;db.close();resolve(val)};q.onerror=()=>{db.close();reject(q.error)}}})}
-function putPhoto(value){return new Promise((resolve,reject)=>{const r=indexedDB.open(PHOTO,1);r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains('drafts'))r.result.createObjectStore('drafts')};r.onerror=()=>reject(r.error);r.onsuccess=()=>{const db=r.result;const tx=db.transaction('drafts','readwrite');tx.objectStore('drafts').put(value,'current');tx.oncomplete=()=>{db.close();resolve()};tx.onerror=()=>{db.close();reject(tx.error)}}})}
+function putPhoto(value){return new Promise((resolve,reject)=>{const r=indexedDB.open(PHOTO,1);r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains('drafts'))r.result.createObjectStore('drafts')};r.onerror=()=>reject(r.error);r.onsuccess=()=>{
+ const db=r.result;let tx;
+ try{tx=db.transaction('drafts','readwrite');tx.objectStore('drafts').put(value,'current');tx.oncomplete=()=>{db.close();resolve()};tx.onerror=tx.onabort=()=>{db.close();reject(tx.error||Error('写真の復元が中断されました'))}}
+ catch(error){if(tx)try{tx.abort()}catch(_){}db.close();reject(error)}
+}})}
 const raw=key=>{try{return JSON.parse(localStorage.getItem(key)||'null')}catch(_){return null}};
 function download(blob,name){const a=document.createElement('a'),u=URL.createObjectURL(blob);a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),60000)}
 function readReceiptPdf(id){
@@ -60,10 +73,12 @@ function putReceiptPdf(id,blob){
   r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains('files'))r.result.createObjectStore('files')};
   r.onerror=()=>reject(r.error);
   r.onsuccess=()=>{
-   const db=r.result,t=db.transaction('files','readwrite');
-   t.objectStore('files').put(blob,id);
-   t.oncomplete=()=>{db.close();resolve()};
-   t.onerror=()=>{db.close();reject(t.error)}
+   const db=r.result;let t;
+   try{
+    t=db.transaction('files','readwrite');t.objectStore('files').put(blob,id);
+    t.oncomplete=()=>{db.close();resolve()};
+    t.onerror=t.onabort=()=>{db.close();reject(t.error||Error('領収書PDFの復元が中断されました'))}
+   }catch(error){if(t)try{t.abort()}catch(_){}db.close();reject(error)}
   }
  })
 }
@@ -86,11 +101,14 @@ function estimateFile(id,value){
   r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains('files'))r.result.createObjectStore('files')};
   r.onerror=()=>reject(r.error);
   r.onsuccess=()=>{
-   const db=r.result,tx=db.transaction('files',value===undefined?'readonly':'readwrite'),store=tx.objectStore('files');
-   const q=value===undefined?store.get(id):store.put(value,id);
-   q.onsuccess=()=>{if(value===undefined){db.close();resolve(q.result||null)}};
-   tx.oncomplete=()=>{if(value!==undefined){db.close();resolve()}};
-   q.onerror=()=>{db.close();reject(q.error)}
+   const db=r.result;let tx;
+   try{
+    tx=db.transaction('files',value===undefined?'readonly':'readwrite');const store=tx.objectStore('files'),q=value===undefined?store.get(id):store.put(value,id);
+    q.onsuccess=()=>{if(value===undefined){db.close();resolve(q.result||null)}};
+    tx.oncomplete=()=>{if(value!==undefined){db.close();resolve()}};
+    tx.onerror=tx.onabort=()=>{db.close();reject(tx.error||Error('見積書PDFの処理が中断されました'))};
+    q.onerror=()=>{db.close();reject(q.error)}
+   }catch(error){if(tx)try{tx.abort()}catch(_){}db.close();reject(error)}
   }
  })
 }
@@ -107,27 +125,65 @@ async function importEstimatePdfs(pdfs){
   await estimateFile(id,new Blob([bytes],{type:'application/pdf'}))
  }
 }
-$('export').onclick=async()=>{const button=$('export');button.disabled=true;try{
- const payload={type:'worktools_backup',version:3,exportedAt:new Date().toISOString(),profile:raw(PROFILE),calculator:raw(CALC),receiptTemplates:raw(RECEIPT),receipt:{draft:raw(R_DRAFT),issuer:raw(R_ISSUER),templates:raw(R_TEMP),history:raw(R_HISTORY)},receiptPdfs:await receiptPdfs(),estimate:{draft:raw(E_DRAFT),templates:raw(E_TEMPLATES),history:raw(E_HISTORY)},estimatePdfs:await estimatePdfs(),photoDraft:await readPhoto()};
+const record=value=>value!==null&&typeof value==='object'&&!Array.isArray(value);
+function optionalShape(value,test,label){if(value!==undefined&&value!==null&&!test(value))throw Error(label+'のバックアップ形式が不正です')}
+function validatePdfMap(value,label){
+ optionalShape(value,record,label);
+ for(const [id,encoded] of Object.entries(value||{})){
+  if(!id||typeof encoded!=='string'||!encoded||!/^[A-Za-z0-9+/=]+$/.test(encoded))throw Error(label+'のバックアップ形式が不正です');
+  try{atob(encoded)}catch(_){throw Error(label+'のバックアップ形式が不正です')}
+ }
+}
+function validateLegacyData(p){
+ optionalShape(p.profile,record,'共通設定');optionalShape(p.calculator,record,'計算機');optionalShape(p.receiptTemplates,Array.isArray,'旧領収書テンプレート');
+ optionalShape(p.photoDraft,record,'写真下書き');
+ if(p.photoDraft)optionalShape(p.photoDraft.pairs,Array.isArray,'写真の一覧');
+ for(const [minimum,name,label] of [[2,'receipt','領収書'],[3,'estimate','見積書']]){
+  if(p.version<minimum)continue;
+  const data=p[name];optionalShape(data,record,label);
+  if(data){optionalShape(data.draft,record,label+'下書き');optionalShape(data.issuer,record,label+'発行元');optionalShape(data.templates,Array.isArray,label+'テンプレート');optionalShape(data.history,Array.isArray,label+'履歴')}
+  validatePdfMap(p[name+'Pdfs'],label+'PDF');
+ }
+}
+$('export').onclick=async()=>{if(backupBusy)return;setBackupBusy(true);try{
+ const api=await inventoryApi(),inventory=await api.store.exportData();
+ const payload={type:'worktools_backup',version:4,exportedAt:new Date().toISOString(),profile:raw(PROFILE),calculator:raw(CALC),receiptTemplates:raw(RECEIPT),receipt:{draft:raw(R_DRAFT),issuer:raw(R_ISSUER),templates:raw(R_TEMP),history:raw(R_HISTORY)},receiptPdfs:await receiptPdfs(),estimate:{draft:raw(E_DRAFT),templates:raw(E_TEMPLATES),history:raw(E_HISTORY)},estimatePdfs:await estimatePdfs(),photoDraft:await readPhoto(),inventory};
  const blob=new Blob([JSON.stringify(payload)],{type:'application/json'});download(blob,'worktools_backup_'+new Date().toISOString().slice(0,10)+'.json');notice('バックアップを書き出しました（'+(blob.size/1048576).toFixed(1)+' MB）');
-}catch(e){notice('バックアップに失敗しました：'+e.message,true)}finally{button.disabled=false}};
-$('import').onchange=async e=>{const file=e.target.files?.[0];if(!file)return;try{
+}catch(e){notice('バックアップに失敗しました：'+e.message,true)}finally{setBackupBusy(false)}};
+$('import').onchange=async e=>{const file=e.target.files?.[0];if(!file||backupBusy)return;setBackupBusy(true);try{
  if(file.size>100*1024*1024)throw Error('100MB以下のバックアップを選んでください');
  const p=JSON.parse(await file.text());
- if(p.type!=='worktools_backup'||![1,2,3].includes(p.version))throw Error('このアプリのバックアップファイルではありません');
- if(!confirm('現在の保存データを上書きして復元しますか？'))return;
+ if(!record(p)||p.type!=='worktools_backup'||![1,2,3,4].includes(p.version))throw Error('このアプリのバックアップファイルではありません');
+ // Validate every incoming part, including inventory references, before any write.
+ validateLegacyData(p);
+ let api,inventory;
+ if(p.version===4){
+  if(!Object.hasOwn(p,'inventory'))throw Error('在庫データが含まれていないversion 4のバックアップです');
+  api=await inventoryApi();inventory=api.validate(p.inventory);
+ }
+ const inventoryNotice=inventory?'\n在庫：商品'+inventory.products.length+'件・入出庫履歴'+inventory.movements.length+'件。現在の在庫商品と入出庫履歴をすべて置き換えます。':'\n旧形式のため、現在の在庫は変更しません。';
+ if(!confirm('現在の保存データを上書きして復元しますか？'+inventoryNotice+'\n復元前のバックアップを保存してから続けてください。'))return;
  const entries=[[PROFILE,p.profile],[CALC,p.calculator],[RECEIPT,p.receiptTemplates]];
  if(p.version>=2&&p.receipt){entries.push([R_DRAFT,p.receipt.draft],[R_ISSUER,p.receipt.issuer],[R_TEMP,p.receipt.templates],[R_HISTORY,p.receipt.history])}
  if(p.version>=3&&p.estimate)entries.push([E_DRAFT,p.estimate.draft],[E_TEMPLATES,p.estimate.templates],[E_HISTORY,p.estimate.history]);
  // Capture originals so a storage quota error does not silently erase earlier values.
  const previous=entries.map(([key])=>[key,localStorage.getItem(key)]);
+ let otherDbWrites=false,rollbackFailed=false;
  try{
   for(const [key,value] of entries)if(value!==undefined){if(value===null)localStorage.removeItem(key);else localStorage.setItem(key,JSON.stringify(value))}
-  if(p.photoDraft)await putPhoto(p.photoDraft);
-  if(p.version>=2)await importReceiptPdfs(p.receiptPdfs);
-  if(p.version>=3)await importEstimatePdfs(p.estimatePdfs);
- }catch(error){for(const [key,value] of previous){try{if(value===null)localStorage.removeItem(key);else localStorage.setItem(key,value)}catch(_){}}throw error}
+  if(p.photoDraft){otherDbWrites=true;await putPhoto(p.photoDraft)}
+  if(p.version>=2){if(Object.keys(p.receiptPdfs||{}).length)otherDbWrites=true;await importReceiptPdfs(p.receiptPdfs)}
+  if(p.version>=3){if(Object.keys(p.estimatePdfs||{}).length)otherDbWrites=true;await importEstimatePdfs(p.estimatePdfs)}
+  // Replace inventory last, in its single atomic transaction across both stores.
+  if(inventory)await api.store.replaceData(inventory);
+ }catch(error){
+  for(const [key,value] of previous){try{if(value===null)localStorage.removeItem(key);else localStorage.setItem(key,value)}catch(_){rollbackFailed=true}}
+  let detail=error.message+'。在庫は変更していません。';
+  if(otherDbWrites)detail+=' 写真・PDFの一部が復元された可能性があります。各ツールの内容を確認してください。';
+  detail+=rollbackFailed?' 端末内設定の一部を元に戻せませんでした。保存内容を確認してください。':' 共通設定などの端末内設定は復元前に戻しました。';
+  throw Error(detail);
+ }
  notice('復元しました。各ツールを再度開いて確認してください。');
-}catch(error){notice('復元できませんでした：'+error.message,true)}finally{e.target.value=''}};
+}catch(error){notice('復元できませんでした：'+error.message,true)}finally{e.target.value='';setBackupBusy(false)}};
 })();
 </script><script src="../shared/shell.js"></script></body></html>
