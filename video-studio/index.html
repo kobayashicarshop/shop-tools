@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#14233a">
+  <meta name="description" content="施工写真と動画から、リール動画を自動構成・編集・書き出し。素材は端末内で処理します。">
+  <title>動画スタジオ | KOBATECH LAB</title>
+  <link rel="stylesheet" href="./style.css">
+  <script src="./app.js" defer></script>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <a href="../" class="back" aria-label="ツール一覧に戻る">‹</a>
+      <div class="brand"><span class="eyebrow">KOBATECH LAB</span><strong>動画スタジオ</strong></div>
+      <button id="newProject" class="text-button" type="button">新規</button>
+    </header>
+    <main>
+      <section class="card intro">
+        <div class="row"><span class="step">01</span><h2>素材を取り込む</h2><span id="mediaCounter" class="counter">0件</span></div>
+        <p>施工写真・動画をまとめて選択できます。並び順と役割はあとから変更できます。</p>
+        <div class="import-row">
+          <label for="mediaInput" class="button primary"><span aria-hidden="true">＋</span> 写真・動画を追加</label>
+          <input id="mediaInput" type="file" accept="image/*,video/*,.heic,.heif,.mov" multiple hidden>
+          <label for="musicInput" class="button secondary">♪ BGMを選択</label>
+          <input id="musicInput" type="file" accept="audio/*,.mp3,.m4a,.wav" hidden>
+        </div>
+        <p class="fine">推奨：写真10枚・動画3本まで、合計200MB以内。素材は外部にアップロードしません。動画は音声なしで編集します（BGMは追加可能）。</p>
+        <div id="assetsEmpty" class="empty">ここに追加した素材が表示されます。</div>
+        <div id="assetList" class="asset-list" aria-label="取り込んだ素材"></div>
+      </section>
+      <section class="card">
+        <div class="row"><span class="step">02</span><h2>自動構成</h2></div>
+        <div class="field-grid">
+          <label class="field">テンプレート<select id="template"><option value="installation">施工紹介</option><option value="beforeAfter">Before / After</option><option value="report">写真付き作業記録</option></select></label>
+          <label class="field">目標の長さ<select id="targetLength"><option value="15">15秒</option><option value="30">30秒</option></select></label>
+          <label class="field">車種・型式（任意）<input id="vehicle" type="text" maxlength="44" placeholder="例：ハイエース 9型"></label>
+          <label class="field">取付製品（任意）<input id="product" type="text" maxlength="44" placeholder="例：ドライブレコーダー"></label>
+          <label class="field wide">作業内容（任意）<input id="summary" type="text" maxlength="70" placeholder="例：配線を見えない位置に処理"></label>
+        </div>
+        <label class="toggle"><input id="endCard" type="checkbox" checked> 終了画面に「KOBATECH LAB」を表示</label>
+        <button id="autoCut" class="button primary full" type="button">自動で構成する</button>
+        <p class="fine">役割が設定されている場合は「施工前 → 作業中 → 完成」の順に並べ替えます。AIによる画像内容の判定は行いません。</p>
+      </section>
+      <section class="card editor-card">
+        <div class="row"><span class="step">03</span><h2>編集・プレビュー</h2><span id="durationLabel" class="counter">0.0秒</span></div>
+        <div class="preview-shell">
+          <canvas id="preview" width="360" height="640" aria-label="動画プレビュー"></canvas>
+          <div id="previewOverlay" class="preview-overlay">素材を追加するとプレビューできます</div>
+        </div>
+        <div class="transport">
+          <button id="skipBack" type="button" aria-label="最初から">↺</button>
+          <button id="play" class="play" type="button" aria-label="再生・停止">▶</button>
+          <button id="skipForward" type="button" aria-label="最後へ">↠</button>
+          <span id="playTime">0:00 / 0:00</span>
+        </div>
+        <input id="scrubber" class="scrubber" type="range" min="0" max="100" step="0.01" value="0" aria-label="再生位置">
+        <div class="timeline-header"><strong>タイムライン</strong><span>クリップを選んで調整</span></div>
+        <div id="timeline" class="timeline" role="list"></div>
+        <div id="clipControls" class="clip-controls" hidden>
+          <div class="row"><h3>選択したクリップ</h3><button id="removeClip" class="danger-link" type="button">削除</button></div>
+          <label class="field">表示する文字<input id="clipCaption" type="text" maxlength="70" placeholder="短い説明を入力"></label>
+          <div class="field-grid">
+            <label class="field">役割<select id="clipRole"><option value="before">施工前</option><option value="work">作業中</option><option value="after">施工後</option><option value="other">その他</option></select></label>
+            <label class="field">表示時間（秒）<input id="clipDuration" type="number" min="1" max="8" step="0.5" inputmode="decimal"></label>
+            <label class="field">拡大率 <span id="zoomValue" class="small-value"></span><input id="clipZoom" type="range" min="1" max="1.8" step="0.05"></label>
+            <label class="field">動画の開始位置（秒）<input id="clipTrim" type="number" min="0" step="0.5" inputmode="decimal"></label>
+            <label class="field">左右位置<input id="clipPanX" type="range" min="-100" max="100" step="5"></label>
+            <label class="field">上下位置<input id="clipPanY" type="range" min="-100" max="100" step="5"></label>
+          </div>
+          <label class="toggle"><input id="clipAnimate" type="checkbox"> 写真をゆっくりズームする</label>
+          <div class="editor-actions"><button id="moveLeft" class="button secondary" type="button">← 前へ</button><button id="moveRight" class="button secondary" type="button">後ろへ →</button><button id="undo" class="button subtle" type="button">元に戻す</button><button id="redo" class="button subtle" type="button">やり直す</button></div>
+        </div>
+        <div class="music-settings" id="musicSettings" hidden><span id="musicName">BGM</span><label class="field">BGM音量<input id="musicVolume" type="range" min="0" max="1" step="0.05" value="0.5"></label><button id="removeMusic" class="danger-link" type="button">BGMを外す</button></div>
+      </section>
+      <section class="card export-card">
+        <div class="row"><span class="step">04</span><h2>動画を書き出す</h2></div>
+        <div class="field-grid">
+          <label class="field">解像度<select id="resolution"><option value="720">720×1280（標準・軽量）</option><option value="1080">1080×1920（高画質）</option></select></label>
+          <div class="field"><span>動画形式</span><div id="formatStatus" class="support">対応状況を確認中…</div></div>
+        </div>
+        <label class="toggle consent"><input id="safetyCheck" type="checkbox"> ナンバー・人物・住所・背景、BGMの使用権を確認しました</label>
+        <button id="export" class="button primary full" type="button" disabled>動画を書き出す</button>
+        <div id="exportProgress" hidden><div class="progress-track"><div id="progressBar"></div></div><p id="exportStatus" class="fine">準備中…</p><button id="cancelExport" class="button secondary" type="button">書き出しを中止</button></div>
+        <div id="exportResult" hidden><video id="resultVideo" controls playsinline preload="metadata"></video><div class="result-actions"><button id="share" class="button secondary" type="button">共有・写真アプリに保存</button><a id="download" class="button primary" download="KOBATECH-LAB-video.mp4">ファイルを保存</a></div></div>
+        <p class="fine">書き出しは実時間で処理するため、完了するまで画面を開いたままにしてください。ブラウザがMP4非対応の場合はWebM形式を案内します。iPhoneの写真アプリへの直接保存はOSの共有画面から行います。</p>
+      </section>
+      <footer><span id="storageState">端末内に自動保存します</span><br><a href="../">ツール一覧へ戻る</a></footer>
+    </main>
+  </div>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+</body>
+</html>
