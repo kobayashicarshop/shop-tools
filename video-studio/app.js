@@ -464,6 +464,9 @@
     const bgm=!!(project.musicId && project.musicVolume>0);
     if(bgm){
       for(const mime of ['video/mp4;codecs=avc1.42E01E,mp4a.40.2','video/mp4;codecs=avc1,mp4a.40.2']) if(MediaRecorder.isTypeSupported(mime))return {ext:'mp4',mime};
+      // SafariのMediaRecorderはMP4にAAC音声を収録できる。ChromiumのMP4+OpusはiPhone互換性が低いため避ける。
+      const safari=/Safari/i.test(navigator.userAgent) && !/Chrome|CriOS|Edg|OPR/i.test(navigator.userAgent);
+      if(safari && MediaRecorder.isTypeSupported('video/mp4'))return {ext:'mp4',mime:'video/mp4'};
     } else {
       for(const mime of ['video/mp4;codecs=avc1.42E01E','video/mp4;codecs=avc1','video/mp4']) if(MediaRecorder.isTypeSupported(mime))return {ext:'mp4',mime};
     }
@@ -482,8 +485,9 @@
     if(totalDuration()>30)notify('Instagram用の最大30秒を超えました。表示時間を短くしてください。');
   }
   function makeAudioTrack() {
-    const music=prepareMusic();
-    if(!music || !project.musicVolume)return Promise.resolve({track:null,clean:()=>{}});
+    if(!project.musicId || !assets.has(project.musicId) || !project.musicVolume)return Promise.resolve({track:null,clean:()=>{}});
+    // MediaElementAudioSourceNodeは同一audio要素へ再接続できないため、書き出しごとに専用要素を作る。
+    const music=new Audio(urlFor(project.musicId));music.preload='auto';music.loop=true;music.volume=1;
     const AudioCtx=window.AudioContext||window.webkitAudioContext;
     if(!AudioCtx)return Promise.reject(new Error('このブラウザはBGMの合成に対応していません。BGMを外してください。'));
     const context=new AudioCtx();
